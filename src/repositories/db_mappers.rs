@@ -8,7 +8,7 @@ impl From<User> for Document {
     }
 }
 
-impl From<Document> for User {
+impl From<mongodb::bson::Document> for User {
     fn from(document: Document) -> Self {
         document.into()
     }
