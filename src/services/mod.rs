@@ -1,3 +1,3 @@
 pub mod user_service;
 pub mod interfaces;
-pub mod http_client;
+pub mod moodle_client;

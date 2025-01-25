@@ -1,5 +1,7 @@
+use async_trait::async_trait;
 use crate::models::user::User;
 
-pub trait HttpClientInteface {
+#[async_trait]
+pub trait UserProvider: Send + Sync  {
     async fn get_user(&self, token: &str) -> Result<User, reqwest::Error>;
 }

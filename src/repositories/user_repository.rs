@@ -1,8 +1,9 @@
 use std::env;
 use std::error::Error;
+use async_trait::async_trait;
 use futures_util::stream::TryStreamExt;
 use mongodb::bson::{doc, to_document, Document};
-use mongodb::{Client, Collection};
+use mongodb::{Client, Collection, Database};
 use crate::models::user::User;
 use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
 
@@ -11,15 +12,12 @@ pub struct UserRepository {
 }
 
 impl UserRepository {
-    pub async fn new() -> Self {
-        let mongo_uri = env::var("MONGODB_URI").expect("You must set the MONGODB_URI environment var!");
-        let client = Client::with_uri_str(mongo_uri).await.expect("failed to connect");
-        let db = client.database("main");
+    pub fn new(db: Database) -> Self {
         let collection = db.collection("users");
         UserRepository { collection }
     }
 }
-
+#[async_trait]
 impl UserRepositoryInterface for UserRepository {
 
     async fn find_by_token(&self, token: &str) -> Result<User, Box<dyn Error>> {

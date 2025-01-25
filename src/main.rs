@@ -6,19 +6,20 @@ mod models;
 mod repositories;
 mod services;
 mod controllers;
+mod infrastructure;
 
 use crate::controllers::user_controller::create_user;
 use crate::repositories::user_repository::UserRepository;
-use crate::services::http_client::HttpClient;
+use crate::services::moodle_client::MoodleClient;
 use crate::services::user_service::UserService;
+use infrastructure::db_connection::get_database;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let db = UserRepository::new().await;
 
-    let user_repository = Arc::new(db);
-    let http_client = Arc::new(HttpClient::new());
-
+    let db = get_database("main").await;
+    let user_repository = Arc::new(UserRepository::new(db));
+    let http_client = Arc::new(MoodleClient::new());
     let user_service = Arc::new(UserService::new(user_repository, http_client));
 
     HttpServer::new(move || {

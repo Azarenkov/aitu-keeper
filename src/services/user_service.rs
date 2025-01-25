@@ -1,41 +1,46 @@
 use std::error::Error;
 use std::sync::Arc;
+use async_trait::async_trait;
 use crate::models::user::User;
 use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
-use crate::services::interfaces::http_client_interface::HttpClientInteface;
+use crate::services::interfaces::user_provider_interface::UserProvider;
+use crate::services::interfaces::user_service_interface::UserServiceInterface;
 
-pub struct UserService<R: UserRepositoryInterface, T: HttpClientInteface> {
-    user_repository: Arc<R>,
-    http_client: Arc<T>,
+pub struct UserService  {
+    user_repository: Arc<dyn UserRepositoryInterface>,
+    user_provider: Arc<dyn UserProvider>,
 }
 
-impl<R: UserRepositoryInterface, T: HttpClientInteface> UserService<R, T> {
-    pub fn new(user_repository: Arc<R>, http_client: Arc<T>) -> Self {
-        UserService { user_repository, http_client }
+impl UserService {
+    pub fn new(user_repository: Arc<dyn UserRepositoryInterface>, http_client: Arc<dyn UserProvider>) -> Self {
+        UserService { user_repository, user_provider: http_client }
     }
+}
 
-    pub async fn create_user(&self, token: &String) -> Result<(), Box<dyn Error>> {
+#[async_trait(?Send)]
+impl UserServiceInterface for UserService {
+    async fn create_user(&self, token: &String) -> Result<(), Box<dyn Error>> {
         let is_exist = self.user_repository.is_exist(token).await?;
         if is_exist {
             return Ok(());
         }
-        match self.http_client.get_user(token).await {
+        match self.user_provider.get_user(token).await {
             Ok(user) => self.user_repository.create(&user, token).await?,
             Err(_) => return Err("Invalid token".into()),
         }
         Ok(())
     }
 
-    pub async fn find_user_by_token(&self, token: &str) -> Result<User, Box<dyn Error>> {
+    async fn find_user_by_token(&self, token: &str) -> Result<User, Box<dyn Error>> {
         self.user_repository.find_by_token(token).await
     }
 
-    pub async fn update_user(&self, user: &User, token: &String) -> Result<(), Box<dyn Error>> {
+    async fn update_user(&self, user: &User, token: &String) -> Result<(), Box<dyn Error>> {
         self.user_repository.update(user, token).await?;
         Ok(())
     }
 
-    pub async fn delete_user(&self, token: &String) -> Result<(), Box<dyn Error>> {
+    async fn delete_user(&self, token: &String) -> Result<(), Box<dyn Error>> {
         self.user_repository.delete(token).await
     }
 }
