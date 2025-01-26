@@ -1,11 +1,10 @@
-use std::error::Error;
-use std::sync::Arc;
+use crate::models::token::Token;
+use crate::repositories::interfaces::token_repository_interface::TokenRepositoryInterface;
 use async_trait::async_trait;
 use mongodb::bson::{doc, Document};
 use mongodb::Collection;
-use crate::models::token::Token;
-use crate::models::user::User;
-use crate::repositories::interfaces::token_repository_interface::TokenRepositoryInterface;
+use std::error::Error;
+use std::sync::Arc;
 
 pub struct TokenRepository {
     collection: Arc<Collection<Document>>

@@ -6,5 +6,4 @@ use crate::models::user::User;
 pub trait UserServiceInterface {
     async fn create_user(&self, token: &String) -> Result<User, Box<dyn Error>>;
     async fn find_user_by_token(&self, token: &str) -> Result<User, Box<dyn Error>>;
-    async fn delete_user(&self, token: &String) -> Result<(), Box<dyn Error>>;
 }

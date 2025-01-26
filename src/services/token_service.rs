@@ -1,12 +1,10 @@
-use std::error::Error;
-use std::sync::Arc;
-use async_trait::async_trait;
-use futures_util::future::err;
 use crate::models::token::Token;
 use crate::repositories::interfaces::token_repository_interface::TokenRepositoryInterface;
-use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
+use async_trait::async_trait;
+use std::error::Error;
+use std::sync::Arc;
 
 pub struct TokenService {
     token_repository: Arc<dyn TokenRepositoryInterface>,

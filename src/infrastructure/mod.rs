@@ -1,1 +1,2 @@
-pub mod db_connection;
+pub mod db;
+pub mod moodle_client;

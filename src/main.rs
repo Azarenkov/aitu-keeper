@@ -11,13 +11,13 @@ mod infrastructure;
 use crate::controllers::user_controller::user_routes;
 use crate::repositories::user_repository::UserRepository;
 use crate::services::user_service::UserService;
-use infrastructure::db_connection::connect;
 use crate::controllers::app_state::AppState;
 use crate::repositories::course_repository::CourseRepository;
 use crate::repositories::token_repository::TokenRepository;
 use crate::services::course_service::CourseService;
 use crate::services::token_service::TokenService;
-use crate::controllers::moodle_client::moodle_client::MoodleClient;
+use infrastructure::moodle_client::moodle_client::MoodleClient;
+use crate::infrastructure::db::db_connection::connect;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

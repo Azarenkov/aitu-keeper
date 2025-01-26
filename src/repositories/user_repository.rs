@@ -1,9 +1,8 @@
 use crate::models::user::User;
 use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
 use async_trait::async_trait;
-use futures_util::stream::TryStreamExt;
-use mongodb::bson::{doc, to_bson, to_document, Bson, Document};
-use mongodb::{bson, Collection, Database};
+use mongodb::bson::{doc, to_bson, Document};
+use mongodb::{bson, Collection};
 use std::error::Error;
 use std::sync::Arc;
 
@@ -34,15 +33,6 @@ impl UserRepositoryInterface for UserRepository {
         }
     }
 
-    async fn is_exist(&self, token: &str) -> Result<bool, Box<dyn Error>> {
-        let user = self.collection.find_one(doc! {"_id": token}).await?;
-        if let Some(user) = user {
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
     async fn save(&self, user: &User, token: &str) -> Result<(), Box<dyn Error>> {
         let doc = doc! {
             "$set": {"user": to_bson(user)? }
@@ -51,9 +41,5 @@ impl UserRepositoryInterface for UserRepository {
         self.collection.update_one(doc! {"_id": token}, doc).await?;
         Ok(())
     }
-
-    async fn delete(&self, token: &String) -> Result<(), Box<dyn Error>> {
-        self.collection.delete_one(doc! {"_id": token}).await?;
-        Ok(())
-    }
+    
 }

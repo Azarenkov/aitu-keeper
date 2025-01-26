@@ -1,12 +1,11 @@
-use crate::repositories::interfaces::course_repository_interface::CourseRepositoryInterface;
-use std::sync::Arc;
-use async_trait::async_trait;
-use std::error::Error;
-use actix_web::web::to;
 use crate::models::course::Course;
 use crate::models::user::User;
+use crate::repositories::interfaces::course_repository_interface::CourseRepositoryInterface;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
 use crate::services::interfaces::provider_interface::ProviderInterface;
+use async_trait::async_trait;
+use std::error::Error;
+use std::sync::Arc;
 
 pub struct CourseService  {
     course_repository: Arc<dyn CourseRepositoryInterface>,
@@ -22,7 +21,7 @@ impl CourseService {
 #[async_trait(?Send)]
 impl CourseServiceInteface for CourseService {
     async fn get_courses(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>> {
-        todo!()
+        self.course_repository.find_by_token(token).await
     }
 
     async fn update_course(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>> {

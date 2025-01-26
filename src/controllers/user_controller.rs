@@ -1,15 +1,9 @@
-use std::error::Error;
-use std::future::Future;
-use std::sync::Arc;
 use actix_web::{get, post, web, HttpResponse};
 use crate::controllers::app_state::AppState;
-use crate::models::course::Course;
 use crate::models::token::Token;
-use crate::services::course_service::CourseService;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
-use crate::services::user_service::UserService;
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(

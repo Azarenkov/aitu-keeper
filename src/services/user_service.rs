@@ -34,8 +34,4 @@ impl UserServiceInterface for UserService {
         self.user_repository.find_by_token(token).await
     }
     
-
-    async fn delete_user(&self, token: &String) -> Result<(), Box<dyn Error>> {
-        self.user_repository.delete(token).await
-    }
 }

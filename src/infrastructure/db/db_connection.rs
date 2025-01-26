@@ -1,5 +1,4 @@
 use std::env;
-use std::io::Error;
 use std::time::Duration;
 use mongodb::{Client, Database};
 use mongodb::bson::doc;
