@@ -30,8 +30,7 @@ impl UserServiceInterface for UserService {
         
     }
 
-    async fn find_user_by_token(&self, token: &str) -> Result<User, Box<dyn Error>> {
+    async fn get_user(&self, token: &str) -> Result<User, Box<dyn Error>> {
         self.user_repository.find_by_token(token).await
     }
-    
 }

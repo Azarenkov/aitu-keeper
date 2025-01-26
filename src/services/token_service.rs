@@ -26,4 +26,8 @@ impl TokenServiceInterface for TokenService {
             Err(_user_already_exist) => Ok(()),
         }
     }
+
+    async fn delete_all(&self, token: &str) -> Result<(), Box<dyn Error>> {
+        self.token_repository.delete(token).await
+    }
 }

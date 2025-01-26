@@ -17,6 +17,7 @@ use crate::repositories::token_repository::TokenRepository;
 use crate::services::course_service::CourseService;
 use crate::services::token_service::TokenService;
 use infrastructure::moodle_client::moodle_client::MoodleClient;
+use crate::controllers::course_controller::course_routes;
 use crate::infrastructure::db::db_connection::connect;
 
 #[tokio::main]
@@ -35,12 +36,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let course_service = Arc::new(CourseService::new(course_repository, moodle_client.clone()));
     let token_service = Arc::new(TokenService::new(token_repository, moodle_client.clone()));
     
-    let app_state = AppState::new(user_service, course_service, token_service);
+    let app_state = AppState::new(token_service, user_service, course_service);
     
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
             .configure(user_routes)
+            .configure(course_routes)
             // .app_data(web::Data::new(semaphore.clone()))
     })
     .bind("0.0.0.0:8080")?

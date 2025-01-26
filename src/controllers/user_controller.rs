@@ -1,4 +1,7 @@
-use actix_web::{get, post, web, HttpResponse};
+use std::error::Error;
+use std::future::Future;
+use actix_web::{delete, get, post, web, HttpResponse};
+use actix_web::web::service;
 use crate::controllers::app_state::AppState;
 use crate::models::token::Token;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
@@ -9,7 +12,8 @@ pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/users")
             .service(create_user)
-            .service(get_user),
+            .service(get_user)
+            .service(delete_user)
     );
 }
 
@@ -35,8 +39,16 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
 
 #[get("/get_user/{token}")]
 async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
-    match app_state.user_service.find_user_by_token(&token.into_inner()).await {
+    match app_state.user_service.get_user(&token.into_inner()).await {
         Ok(user) => HttpResponse::Ok().json(user),
+        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+    }
+}
+
+#[delete("/delete_user/{token}")]
+async fn delete_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
+    match app_state.token_service.delete_all(&token).await {
+        Ok(_) => HttpResponse::Ok().json("User was deleted"),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }
 }

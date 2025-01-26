@@ -41,7 +41,7 @@ impl CourseRepositoryInterface for CourseRepository {
                 Err("The 'courses' field is missing".into())
             }
         } else {
-            Err("User not found.".into())
+            Err("Courses not found.".into())
         }
     }
 }

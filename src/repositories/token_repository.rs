@@ -26,4 +26,9 @@ impl TokenRepositoryInterface for TokenRepository {
         self.collection.insert_one(doc).await?;
         Ok(())
     }
+
+    async fn delete(&self, token: &str) -> Result<(), Box<dyn Error>> {
+        self.collection.delete_one(doc! { "_id": token}).await?;
+        Ok(())
+    }
 }
