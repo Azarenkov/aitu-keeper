@@ -22,7 +22,7 @@ impl GradeService {
 #[async_trait(?Send)]
 impl GradeServiceInteface for GradeService {
     async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>> {
-        todo!()
+        self.grade_repository.find_by_token(token).await
     }
 
     async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>> {

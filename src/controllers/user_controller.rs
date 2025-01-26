@@ -1,5 +1,4 @@
-use std::error::Error;
-use crate::controllers::app_state::AppState;
+use crate::controllers::shared::app_state::AppState;
 use crate::models::token::Token;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
 use crate::services::interfaces::grade_service_interface::GradeServiceInteface;

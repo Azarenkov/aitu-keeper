@@ -8,7 +8,7 @@ mod services;
 mod controllers;
 mod infrastructure;
 
-use crate::controllers::app_state::AppState;
+use controllers::shared::app_state::AppState;
 use crate::controllers::course_controller::course_routes;
 use crate::controllers::user_controller::user_routes;
 use crate::infrastructure::db::db_connection::connect;
@@ -19,6 +19,7 @@ use crate::services::course_service::CourseService;
 use crate::services::token_service::TokenService;
 use crate::services::user_service::UserService;
 use infrastructure::client::moodle_client::MoodleClient;
+use crate::controllers::grade_controller::grade_routes;
 use crate::repositories::grade_repository::GradeRepository;
 use crate::services::grade_service::GradeService;
 
@@ -47,6 +48,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .app_data(app_state.clone())
             .configure(user_routes)
             .configure(course_routes)
+            .configure(grade_routes)
             // .app_data(web::Data::new(semaphore.clone()))
     })
     .bind("0.0.0.0:8080")?

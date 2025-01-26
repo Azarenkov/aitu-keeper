@@ -1,6 +1,6 @@
-use crate::controllers::app_state::AppState;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
 use actix_web::{get, web, HttpResponse};
+use crate::controllers::shared::app_state::AppState;
 
 pub fn course_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
