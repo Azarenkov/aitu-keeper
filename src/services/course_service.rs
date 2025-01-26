@@ -1,5 +1,4 @@
 use crate::repositories::interfaces::course_repository_interface::CourseRepositoryInterface;
-use crate::services::interfaces::course_provider_interface::CourseProviderInteface;
 use std::sync::Arc;
 use async_trait::async_trait;
 use std::error::Error;
@@ -7,14 +6,15 @@ use actix_web::web::to;
 use crate::models::course::Course;
 use crate::models::user::User;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
+use crate::services::interfaces::provider_interface::ProviderInterface;
 
 pub struct CourseService  {
     course_repository: Arc<dyn CourseRepositoryInterface>,
-    course_provider: Arc<dyn CourseProviderInteface>,
+    course_provider: Arc<dyn ProviderInterface>,
 }
 
 impl CourseService {
-    pub fn new(course_repository: Arc<dyn CourseRepositoryInterface>, course_provider: Arc<dyn CourseProviderInteface>) -> Self {
+    pub fn new(course_repository: Arc<dyn CourseRepositoryInterface>, course_provider: Arc<dyn ProviderInterface>) -> Self {
         Self { course_repository, course_provider }
     }
 }

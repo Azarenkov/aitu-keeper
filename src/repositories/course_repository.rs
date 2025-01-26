@@ -20,7 +20,7 @@ impl CourseRepository {
 impl CourseRepositoryInterface for CourseRepository {
     async fn save(&self, token: &str, courses: &Vec<Course>) -> Result<(), Box<dyn Error>> {
         let courses_doc = to_bson(courses)?;
-        self.collection.update_one(doc! {"token": token}, doc! {
+        self.collection.update_one(doc! {"_id": token}, doc! {
             "$set": {"courses": courses_doc}
         }).await?;
         Ok(())

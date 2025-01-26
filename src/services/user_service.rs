@@ -3,16 +3,16 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use crate::models::user::User;
 use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
-use crate::services::interfaces::user_provider_interface::UserProviderInteface;
+use crate::services::interfaces::provider_interface::ProviderInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
 
 pub struct UserService  {
     user_repository: Arc<dyn UserRepositoryInterface>,
-    user_provider: Arc<dyn UserProviderInteface>,
+    user_provider: Arc<dyn ProviderInterface>,
 }
 
 impl UserService {
-    pub fn new(user_repository: Arc<dyn UserRepositoryInterface>, http_client: Arc<dyn UserProviderInteface>) -> Self {
+    pub fn new(user_repository: Arc<dyn UserRepositoryInterface>, http_client: Arc<dyn ProviderInterface>) -> Self {
         Self { user_repository, user_provider: http_client }
     }
 }
@@ -20,10 +20,6 @@ impl UserService {
 #[async_trait(?Send)]
 impl UserServiceInterface for UserService {
     async fn create_user(&self, token: &String) -> Result<User, Box<dyn Error>> {
-        let is_exist = self.user_repository.is_exist(token).await?;
-        if is_exist {
-            return Err("User already exist".into());
-        }
         match self.user_provider.get_user(token).await {
             Ok(user) => {
                 self.user_repository.save(&user, token).await?;

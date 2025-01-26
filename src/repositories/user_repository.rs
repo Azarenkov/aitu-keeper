@@ -2,7 +2,7 @@ use crate::models::user::User;
 use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
 use async_trait::async_trait;
 use futures_util::stream::TryStreamExt;
-use mongodb::bson::{doc, to_document, Bson, Document};
+use mongodb::bson::{doc, to_bson, to_document, Bson, Document};
 use mongodb::{bson, Collection, Database};
 use std::error::Error;
 use std::sync::Arc;
@@ -20,7 +20,7 @@ impl UserRepository {
 impl UserRepositoryInterface for UserRepository {
 
     async fn find_by_token(&self, token: &str) -> Result<User, Box<dyn Error>> {
-        let doc = self.collection.find_one(doc! {"token": token}).await?;
+        let doc = self.collection.find_one(doc! {"_id": token}).await?;
         if let Some(doc) = doc {
             match doc.get_document("user").ok() {
                 Some(doc) => {
@@ -35,7 +35,7 @@ impl UserRepositoryInterface for UserRepository {
     }
 
     async fn is_exist(&self, token: &str) -> Result<bool, Box<dyn Error>> {
-        let user = self.collection.find_one(doc! {"token": token}).await?;
+        let user = self.collection.find_one(doc! {"_id": token}).await?;
         if let Some(user) = user {
             Ok(true)
         } else {
@@ -45,16 +45,15 @@ impl UserRepositoryInterface for UserRepository {
 
     async fn save(&self, user: &User, token: &str) -> Result<(), Box<dyn Error>> {
         let doc = doc! {
-            "token": token,
-            "user": to_document(user)?
+            "$set": {"user": to_bson(user)? }
         };
 
-        self.collection.insert_one(doc).await?;
+        self.collection.update_one(doc! {"_id": token}, doc).await?;
         Ok(())
     }
 
     async fn delete(&self, token: &String) -> Result<(), Box<dyn Error>> {
-        self.collection.delete_one(doc! {"token": token}).await?;
+        self.collection.delete_one(doc! {"_id": token}).await?;
         Ok(())
     }
 }
