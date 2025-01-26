@@ -1,3 +1,3 @@
 pub mod user;
 pub mod token;
-mod course;
+pub mod course;

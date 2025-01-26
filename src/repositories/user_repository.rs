@@ -5,15 +5,15 @@ use futures_util::stream::TryStreamExt;
 use mongodb::bson::{doc, to_document, Bson, Document};
 use mongodb::{bson, Collection, Database};
 use std::error::Error;
+use std::sync::Arc;
 
 pub struct UserRepository {
-    collection: Collection<Document>,
+    collection: Arc<Collection<Document>>,
 }
 
 impl UserRepository {
-    pub fn new(db: Database) -> Self {
-        let collection = db.collection("users");
-        UserRepository { collection }
+    pub fn new(collection: Arc<Collection<Document>>) -> Self {
+        Self { collection }
     }
 }
 #[async_trait]
@@ -32,23 +32,6 @@ impl UserRepositoryInterface for UserRepository {
         } else {
             Err("User not found".into())
         }
-    }   
-    async fn find_all(&self) -> Result<Vec<User>, Box<dyn Error>> {
-        // let mut users = Vec::new();
-        // let filter = doc! {"user": {"$exists": true}};
-        // let mut cursor = self.collection.find(filter).await?;
-        // 
-        // while let Some(result) = cursor.try_next().await? {
-        //     if let Some(user) = result.get_document("user").ok() {
-        //         users.push(User::from(user));
-        //     }
-        // }
-        // 
-        // if users.is_empty() {
-        //     return Err("No users found".into());
-        // }
-        // Ok(users)
-        todo!()
     }
 
     async fn is_exist(&self, token: &str) -> Result<bool, Box<dyn Error>> {
@@ -60,27 +43,14 @@ impl UserRepositoryInterface for UserRepository {
         }
     }
 
-    async fn create(&self, user: &User, token: &String) -> Result<(), Box<dyn Error>> {
-        // let user_doc = mongodb::bson::Document::from(user.clone());
-        // let mut doc = Document::new();
-        // doc.insert("token", &token);
-        // doc.insert("user", &user_doc);
-
-
+    async fn save(&self, user: &User, token: &str) -> Result<(), Box<dyn Error>> {
         let doc = doc! {
             "token": token,
-            "user": to_document(user).unwrap()
+            "user": to_document(user)?
         };
 
         self.collection.insert_one(doc).await?;
         Ok(())
-    }
-
-    async fn update(&self, user: &User, token: &String) -> Result<(), Box<dyn Error>> {
-        // let doc = Document::from(user.clone());
-        // let user = self.collection.update_one(doc! {"token": token}, doc! {"$set": doc }).await?;
-        // Ok(())
-        todo!()
     }
 
     async fn delete(&self, token: &String) -> Result<(), Box<dyn Error>> {
