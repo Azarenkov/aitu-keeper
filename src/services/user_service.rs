@@ -19,7 +19,7 @@ impl UserService {
 
 #[async_trait(?Send)]
 impl UserServiceInterface for UserService {
-    async fn create_user(&self, token: &String) -> Result<User, Box<dyn Error>> {
+    async fn create_user(&self, token: &str) -> Result<User, Box<dyn Error>> {
         match self.user_provider.get_user(token).await {
             Ok(user) => {
                 self.user_repository.save(&user, token).await?;

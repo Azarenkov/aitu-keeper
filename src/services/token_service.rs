@@ -20,10 +20,10 @@ impl TokenService {
 #[async_trait(?Send)]
 impl TokenServiceInterface for TokenService {
     async fn create_token(&self, token: &Token) -> Result<(), Box<dyn Error>> {
-        let is_valid_token = self.token_provider.valid_token(&token.token).await?;
+        self.token_provider.valid_token(&token.token).await?;
         match self.token_repository.save(token).await {
             Ok(_) => Ok(()),
-            Err(_user_already_exist) => Ok(()),
+            Err(_) => Err("User already exist".into()),
         }
     }
 

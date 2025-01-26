@@ -1,12 +1,11 @@
 use std::error::Error;
-use std::future::Future;
-use actix_web::{delete, get, post, web, HttpResponse};
-use actix_web::web::service;
 use crate::controllers::app_state::AppState;
 use crate::models::token::Token;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
+use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
+use actix_web::{delete, get, post, web, HttpResponse};
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -25,14 +24,28 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
             match app_state.user_service.create_user(&token.token).await {
                 Ok(user) => {
                     match app_state.course_service.update_course(&token.token, &user).await {
-                        Ok(courses) => HttpResponse::Ok().json("User was created"),
+                        Ok(courses) => {
+                            match app_state.grade_service.update_grades(&token.token, &user, &courses).await {
+                                Ok(_) => {
+                                    HttpResponse::Ok().json("User was created")
+                                }
+                                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+                                
+                            }
+                        },
                         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
                     }
                 },
                 Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
             }
         },
-        Err(e) => HttpResponse::InternalServerError().body(e.to_string())
+        Err(e) => {
+            if e.to_string() == "User already exist" {
+                HttpResponse::Ok().json("User already exist")
+            } else {
+                HttpResponse::InternalServerError().body("error")
+            }
+        }
     }
 
 }

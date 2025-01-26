@@ -1,8 +1,9 @@
-use async_trait::async_trait;
-use reqwest::{Client, Error};
 use crate::models::course::Course;
+use crate::models::grade::UserGrades;
 use crate::models::user::User;
 use crate::services::interfaces::provider_interface::ProviderInterface;
+use async_trait::async_trait;
+use reqwest::{Client, Error};
 
 pub struct MoodleClient {
     client: Client,
@@ -41,6 +42,17 @@ impl ProviderInterface for MoodleClient {
         );
         let response = self.client.get(&url).send().await?;
         response.json::<Vec<Course>>().await
+    }
+
+    async fn get_grades_by_course_id(&self, token: &str, user_id: i64, course_id: i64) -> Result<UserGrades, Error> {
+        let url = format!("{}wstoken={}&wsfunction=gradereport_user_get_grade_items&moodlewsrestformat=json&userid={}&courseid={}",
+            self.base_url,
+            token,
+            user_id,
+            course_id
+        );
+        let response = self.client.get(&url).send().await?;
+        response.json::<UserGrades>().await
     }
 }
 

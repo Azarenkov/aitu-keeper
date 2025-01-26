@@ -1,7 +1,6 @@
-use actix_web::{get, web, HttpResponse};
 use crate::controllers::app_state::AppState;
-use crate::controllers::user_controller::{create_user, delete_user, get_user};
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
+use actix_web::{get, web, HttpResponse};
 
 pub fn course_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(

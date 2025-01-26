@@ -18,7 +18,7 @@ impl CourseRepository {
 
 #[async_trait]
 impl CourseRepositoryInterface for CourseRepository {
-    async fn save(&self, token: &str, courses: &Vec<Course>) -> Result<(), Box<dyn Error>> {
+    async fn save(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
         let courses_doc = to_bson(courses)?;
         self.collection.update_one(doc! {"_id": token}, doc! {
             "$set": {"courses": courses_doc}
