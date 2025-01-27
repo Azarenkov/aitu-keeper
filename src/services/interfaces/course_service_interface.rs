@@ -6,5 +6,5 @@ use crate::models::user::User;
 #[async_trait(?Send)]
 pub trait CourseServiceInteface: Send + Sync  {
     async fn get_courses(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>>;
-    async fn update_course(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>>;
+    async fn update_courses(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>>;
 }

@@ -24,7 +24,7 @@ impl CourseServiceInteface for CourseService {
         self.course_repository.find_by_token(token).await
     }
 
-    async fn update_course(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>> {
+    async fn update_courses(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>> {
         let courses = self.course_provider.get_courses(token, user.userid).await?;
         self.course_repository.save(token, &courses).await?;
         Ok(courses)

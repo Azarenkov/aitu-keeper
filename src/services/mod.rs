@@ -3,3 +3,4 @@ pub mod interfaces;
 pub mod course_service;
 pub mod token_service;
 pub mod grade_service;
+pub mod deadline_service;

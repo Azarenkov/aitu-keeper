@@ -1,3 +1,4 @@
+use std::error::Error;
 use crate::controllers::shared::app_state::AppState;
 use crate::models::token::Token;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
@@ -5,6 +6,7 @@ use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
+use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -22,11 +24,16 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
         Ok(_) => {
             match app_state.user_service.create_user(&token.token).await {
                 Ok(user) => {
-                    match app_state.course_service.update_course(&token.token, &user).await {
+                    match app_state.course_service.update_courses(&token.token, &user).await {
                         Ok(courses) => {
                             match app_state.grade_service.update_grades(&token.token, &user, &courses).await {
                                 Ok(_) => {
-                                    HttpResponse::Ok().json("User was created")
+                                    match app_state.deadline_service.update_deadlines(&token.token, &courses).await {
+                                        Ok(_) => {
+                                            HttpResponse::Ok().json("User was created")
+                                        },
+                                        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+                                    }
                                 }
                                 Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
                                 
