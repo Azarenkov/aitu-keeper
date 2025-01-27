@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let course_repository = Arc::new(CourseRepository::new(db.clone()));
     let grade_repository = Arc::new(GradeRepository::new(db.clone()));
     let deadline_repository = Arc::new(DeadlineRepository::new(db.clone()));
-    
+
     let data_service = Arc::new(DataService::new(
         moodle_client,
         token_repository,
@@ -44,8 +44,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         grade_repository,
         deadline_repository,
     ));
-    
-    
+
+
     let app_state = AppState::new(data_service);
     
     HttpServer::new(move || {

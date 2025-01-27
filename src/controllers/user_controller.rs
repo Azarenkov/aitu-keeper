@@ -1,9 +1,5 @@
-use std::error::Error;
 use crate::controllers::shared::app_state::AppState;
 use crate::models::token::token_model::Token;
-use crate::services::interfaces::course_service_interface::CourseServiceInteface;
-use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
-use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
@@ -22,32 +18,12 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
     // let token = token.into_inner().token;
     match app_state.data_service.create_token(&token).await {
         Ok(_) => {
-            match app_state.data_service.create_user(&token.token).await {
-                Ok(user) => {
-                    match app_state.data_service.update_courses(&token.token, &user).await {
-                        Ok(courses) => {
-                            match app_state.data_service.update_grades(&token.token, &user, &courses).await {
-                                Ok(_) => {
-                                    match app_state.data_service.update_deadlines(&token.token, &courses).await {
-                                        Ok(_) => {
-                                            match app_state.data_service.update_grades_overview(&token.token, &courses).await {
-                                                Ok(_) => HttpResponse::Ok().json("User was created"),
-                                                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-                                            }
-                                            
-                                        },
-                                        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-                                    }
-                                }
-                                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-                                
-                            }
-                        },
-                        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-                    }
-                },
-                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-            }
+            tokio::task::spawn(async move {
+                if let Err(e) = app_state.data_service.registaration(&token.token).await {
+                    eprintln!("Registration error {}", e);
+                };
+            });
+            HttpResponse::Ok().json("User was created")
         },
         Err(e) => {
             if e.to_string() == "User already exist" {

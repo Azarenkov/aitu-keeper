@@ -46,7 +46,6 @@ pub trait GradeRepositoryInterface: Send + Sync {
     async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>, Box<dyn Error>>;
 }
 
-
 pub struct DataService  {
     data_provider: Arc<dyn ProviderInterface>,
     token_repository: Arc<dyn TokenRepositoryInterface>,
@@ -59,6 +58,15 @@ pub struct DataService  {
 impl DataService {
     pub fn new(data_provider: Arc<dyn ProviderInterface>, token_repository: Arc<dyn TokenRepositoryInterface>, user_repository: Arc<dyn UserRepositoryInterface>, course_repository: Arc<dyn CourseRepositoryInterface>, grade_repository: Arc<dyn GradeRepositoryInterface>, deadline_repository: Arc<dyn DeadlineRepositoryInterface>) -> Self {
         Self { data_provider, token_repository, user_repository, course_repository, grade_repository, deadline_repository }
+    }
+
+    pub async fn registaration(&self, token: &str) -> Result<(), Box<dyn Error>> {
+        let user = self.create_user(token).await?;
+        let courses = self.update_courses(token, &user).await?;
+        self.update_grades(token, &user, &courses).await?;
+        self.update_grades_overview(token, &courses).await?;
+        self.update_deadlines(token, &courses).await?;
+        Ok(())
     }
 }
 
@@ -77,7 +85,7 @@ impl TokenServiceInterface for DataService {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl UserServiceInterface for DataService {
     async fn create_user(&self, token: &str) -> Result<User, Box<dyn Error>> {
         match self.data_provider.get_user(token).await {
@@ -95,7 +103,7 @@ impl UserServiceInterface for DataService {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl CourseServiceInteface for DataService {
     async fn get_courses(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>> {
         self.course_repository.find_by_token(token).await
@@ -108,7 +116,7 @@ impl CourseServiceInteface for DataService {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl GradeServiceInteface for DataService {
     async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>> {
         self.grade_repository.find_by_token(token).await
@@ -149,7 +157,7 @@ impl GradeServiceInteface for DataService {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl DeadlineServiceInterface for DataService {
     async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>> {
         self.deadline_repository.find_by_token(token).await
