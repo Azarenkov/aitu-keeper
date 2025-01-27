@@ -1,6 +1,6 @@
 use std::error::Error;
 use async_trait::async_trait;
-use crate::models::course::Course;
+use crate::models::course::course_model::Course;
 
 #[async_trait]
 pub trait CourseRepositoryInterface: Send + Sync {

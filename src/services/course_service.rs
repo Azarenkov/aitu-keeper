@@ -1,11 +1,11 @@
-use crate::models::course::Course;
-use crate::models::user::User;
-use crate::repositories::interfaces::course_repository_interface::CourseRepositoryInterface;
+use crate::models::course::course_model::Course;
+use crate::models::user::user_model::User;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use async_trait::async_trait;
 use std::error::Error;
 use std::sync::Arc;
+use crate::services::repositories::course_repository_interface::CourseRepositoryInterface;
 
 pub struct CourseService  {
     course_repository: Arc<dyn CourseRepositoryInterface>,

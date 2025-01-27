@@ -1,7 +1,6 @@
-use actix_web::{get, web, HttpResponse};
-use crate::controllers::course_controller::get_courses;
 use crate::controllers::shared::app_state::AppState;
 use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
+use actix_web::{get, web, HttpResponse};
 
 pub fn deadline_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(

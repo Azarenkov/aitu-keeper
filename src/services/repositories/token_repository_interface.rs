@@ -1,6 +1,6 @@
 use std::error::Error;
 use async_trait::async_trait;
-use crate::models::token::Token;
+use crate::models::token::token_model::Token;
 
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {

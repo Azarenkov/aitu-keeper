@@ -1,10 +1,10 @@
 use std::error::Error;
 use std::sync::Arc;
 use async_trait::async_trait;
-use crate::models::user::User;
-use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
+use crate::models::user::user_model::User;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
+use crate::services::repositories::user_repository_interface::UserRepositoryInterface;
 
 pub struct UserService  {
     user_repository: Arc<dyn UserRepositoryInterface>,

@@ -1,10 +1,10 @@
-use crate::models::token::Token;
-use crate::repositories::interfaces::token_repository_interface::TokenRepositoryInterface;
+use crate::models::token::token_model::Token;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use async_trait::async_trait;
 use std::error::Error;
 use std::sync::Arc;
+use crate::services::repositories::token_repository_interface::TokenRepositoryInterface;
 
 pub struct TokenService {
     token_repository: Arc<dyn TokenRepositoryInterface>,

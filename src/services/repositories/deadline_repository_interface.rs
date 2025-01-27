@@ -1,4 +1,4 @@
-use crate::models::deadline::Deadline;
+use crate::models::deadline::deadline_model::Deadline;
 use async_trait::async_trait;
 use std::error::Error;
 

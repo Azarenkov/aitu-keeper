@@ -1,6 +1,6 @@
 use std::error::Error;
 use async_trait::async_trait;
-use crate::models::grade::Grade;
+use crate::models::grade::grade_model::Grade;
 
 #[async_trait]
 pub trait GradeRepositoryInterface: Send + Sync {

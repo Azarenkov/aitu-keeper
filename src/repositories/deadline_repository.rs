@@ -1,11 +1,10 @@
-use crate::models::deadline::Deadline;
-use crate::repositories::interfaces::deadline_repository_interface::DeadlineRepositoryInterface;
+use crate::models::deadline::deadline_model::Deadline;
 use async_trait::async_trait;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::Collection;
 use std::error::Error;
 use std::sync::Arc;
-use crate::models::grade::Grade;
+use crate::services::repositories::deadline_repository_interface::DeadlineRepositoryInterface;
 
 pub struct DeadlineRepository {
     collection: Arc<Collection<Document>>,

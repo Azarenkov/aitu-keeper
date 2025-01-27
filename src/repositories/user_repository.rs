@@ -1,10 +1,10 @@
-use crate::models::user::User;
-use crate::repositories::interfaces::user_repository_interface::UserRepositoryInterface;
+use crate::models::user::user_model::User;
 use async_trait::async_trait;
 use mongodb::bson::{doc, to_bson, Document};
 use mongodb::{bson, Collection};
 use std::error::Error;
 use std::sync::Arc;
+use crate::services::repositories::user_repository_interface::UserRepositoryInterface;
 
 pub struct UserRepository {
     collection: Arc<Collection<Document>>,

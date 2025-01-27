@@ -1,10 +1,10 @@
-use crate::models::grade::Grade;
-use crate::repositories::interfaces::grade_repository_interface::GradeRepositoryInterface;
+use crate::models::grade::grade_model::Grade;
 use async_trait::async_trait;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::Collection;
 use std::error::Error;
 use std::sync::Arc;
+use crate::services::repositories::grade_repository_interface::GradeRepositoryInterface;
 
 pub struct GradeRepository {
     collection: Arc<Collection<Document>>,

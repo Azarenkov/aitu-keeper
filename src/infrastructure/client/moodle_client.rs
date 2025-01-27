@@ -1,10 +1,11 @@
-use crate::models::course::Course;
-use crate::models::grade::UserGrades;
-use crate::models::user::User;
+use crate::models::course::course_model::Course;
+use crate::models::grade::grade_model::UserGrades;
+use crate::models::user::user_model::User;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use async_trait::async_trait;
 use reqwest::{Client, Error};
-use crate::models::deadline::Events;
+use crate::models::deadline::deadline_model::Events;
+use crate::models::grade_overview::grade_overview_model::GradesOverview;
 
 pub struct MoodleClient {
     client: Client,
@@ -64,6 +65,15 @@ impl ProviderInterface for MoodleClient {
         );
         let response = self.client.get(&url).send().await?;
         response.json::<Events>().await
+    }
+
+    async fn get_grades_overview(&self, token: &str) -> Result<GradesOverview, Error> {
+        let url = format!("{}wstoken={}&wsfunction=gradereport_overview_get_course_grades&moodlewsrestformat=json",
+            self.base_url,
+            token
+        );
+        let response = self.client.get(&url).send().await?;
+        response.json::<GradesOverview>().await
     }
 }
 

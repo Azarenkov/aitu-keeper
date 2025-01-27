@@ -1,5 +1,5 @@
 use crate::controllers::shared::app_state::AppState;
-use crate::models::token::Token;
+use crate::models::token::token_model::Token;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
 use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
 use crate::services::interfaces::grade_service_interface::GradeServiceInteface;

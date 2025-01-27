@@ -1,10 +1,10 @@
-use crate::models::course::Course;
-use crate::repositories::interfaces::course_repository_interface::CourseRepositoryInterface;
+use crate::models::course::course_model::Course;
 use async_trait::async_trait;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::Collection;
 use std::error::Error;
 use std::sync::Arc;
+use crate::services::repositories::course_repository_interface::CourseRepositoryInterface;
 
 pub struct CourseRepository {
     collection: Arc<Collection<Document>>,
@@ -31,12 +31,9 @@ impl CourseRepositoryInterface for CourseRepository {
 
         if let Some(doc) = doc {
             if let Some(Bson::Array(courses_array)) = doc.get("courses") {
-                let courses: Result<Vec<Course>, _> = courses_array
-                    .iter()
-                    .map(|course| from_bson::<Course>(course.clone()))
-                    .collect();
-
-                courses.map_err(|e| e.into())
+                let bson = Bson::from(courses_array);
+                let courses = from_bson::<Vec<Course>>(bson)?;
+                Ok(courses)
             } else {
                 Err("The 'courses' field is missing".into())
             }

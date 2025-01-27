@@ -1,6 +1,6 @@
 use std::error::Error;
 use async_trait::async_trait;
-use crate::models::user::User;
+use crate::models::user::user_model::User;
 
 #[async_trait(?Send)]
 pub trait UserServiceInterface {

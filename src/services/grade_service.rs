@@ -1,12 +1,12 @@
 use std::error::Error;
 use std::sync::Arc;
 use async_trait::async_trait;
-use crate::models::course::Course;
-use crate::models::grade::Grade;
-use crate::models::user::User;
-use crate::repositories::interfaces::grade_repository_interface::GradeRepositoryInterface;
+use crate::models::course::course_model::Course;
+use crate::models::grade::grade_model::Grade;
+use crate::models::user::user_model::User;
 use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
 use crate::services::interfaces::provider_interface::ProviderInterface;
+use crate::services::repositories::grade_repository_interface::GradeRepositoryInterface;
 
 pub struct GradeService  {
     grade_repository: Arc<dyn GradeRepositoryInterface>,
