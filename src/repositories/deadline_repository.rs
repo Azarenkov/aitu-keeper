@@ -4,7 +4,7 @@ use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::Collection;
 use std::error::Error;
 use std::sync::Arc;
-use crate::services::repositories::deadline_repository_interface::DeadlineRepositoryInterface;
+use crate::services::deadline_service::DeadlineRepositoryInterface;
 
 pub struct DeadlineRepository {
     collection: Arc<Collection<Document>>,

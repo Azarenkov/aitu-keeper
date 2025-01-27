@@ -6,7 +6,12 @@ use crate::models::grade::grade_model::Grade;
 use crate::models::user::user_model::User;
 use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
 use crate::services::interfaces::provider_interface::ProviderInterface;
-use crate::services::repositories::grade_repository_interface::GradeRepositoryInterface;
+
+#[async_trait]
+pub trait GradeRepositoryInterface: Send + Sync {
+    async fn save(&self, token: &str, grades: &[Grade]) -> Result<(), Box<dyn Error>>;
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>>;
+}
 
 pub struct GradeService  {
     grade_repository: Arc<dyn GradeRepositoryInterface>,

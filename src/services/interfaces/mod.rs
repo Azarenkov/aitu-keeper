@@ -4,3 +4,4 @@ pub mod token_service_interface;
 pub mod provider_interface;
 pub mod grade_service_interface;
 pub mod deadline_service_interface;
+pub mod grade_overview_service_interface;

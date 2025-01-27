@@ -22,8 +22,10 @@ use infrastructure::client::moodle_client::MoodleClient;
 use crate::controllers::deadline_controller::deadline_routes;
 use crate::controllers::grade_controller::grade_routes;
 use crate::repositories::deadline_repository::DeadlineRepository;
+use crate::repositories::grade_overview_repository::GradeOverviewRepository;
 use crate::repositories::grade_repository::GradeRepository;
 use crate::services::deadline_service::DeadlineService;
+use crate::services::grade_overview_service::GradeOverviewService;
 use crate::services::grade_service::GradeService;
 
 #[tokio::main]
@@ -39,14 +41,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let course_repository = Arc::new(CourseRepository::new(db.clone()));
     let grade_repository = Arc::new(GradeRepository::new(db.clone()));
     let deadline_repository = Arc::new(DeadlineRepository::new(db.clone()));
+    let grade_overview_repository = Arc::new(GradeOverviewRepository::new(db.clone()));
 
     let token_service = Arc::new(TokenService::new(token_repository, moodle_client.clone()));
     let user_service = Arc::new(UserService::new(user_repository, moodle_client.clone()));
     let course_service = Arc::new(CourseService::new(course_repository, moodle_client.clone()));
     let grade_service = Arc::new(GradeService::new(grade_repository, moodle_client.clone()));
     let deadline_service = Arc::new(DeadlineService::new(deadline_repository, moodle_client.clone()));
+    let grade_overview_service = Arc::new(GradeOverviewService::new(grade_overview_repository, moodle_client.clone()));
     
-    let app_state = AppState::new(token_service, user_service, course_service, grade_service, deadline_service);
+    let app_state = AppState::new(token_service, user_service, course_service, grade_service, deadline_service, grade_overview_service);
     
     HttpServer::new(move || {
         App::new()

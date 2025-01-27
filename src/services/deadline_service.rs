@@ -1,14 +1,17 @@
 use crate::models::course::course_model::Course;
 use crate::models::deadline::deadline_model::Deadline;
+use crate::models::deadline::sort::sort_deadlines;
 use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use async_trait::async_trait;
-use chrono::{NaiveTime, Timelike, Utc};
-use regex::Regex;
 use std::error::Error;
 use std::sync::Arc;
-use crate::models::deadline::sort::sort_deadlines;
-use crate::services::repositories::deadline_repository_interface::DeadlineRepositoryInterface;
+
+#[async_trait]
+pub trait DeadlineRepositoryInterface: Send + Sync {
+    async fn save(&self, token: &str, deadlines: &[Deadline]) -> Result<(), Box<dyn Error>>;
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>>;
+}
 
 pub struct DeadlineService  {
     deadline_repository: Arc<dyn DeadlineRepositoryInterface>,

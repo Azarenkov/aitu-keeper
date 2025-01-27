@@ -4,7 +4,12 @@ use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use async_trait::async_trait;
 use std::error::Error;
 use std::sync::Arc;
-use crate::services::repositories::token_repository_interface::TokenRepositoryInterface;
+
+#[async_trait]
+pub trait TokenRepositoryInterface: Send + Sync {
+    async fn save(&self, token: &Token) -> Result<(), Box<dyn Error>>;
+    async fn delete(&self, token: &str) -> Result<(), Box<dyn Error>>;
+}
 
 pub struct TokenService {
     token_repository: Arc<dyn TokenRepositoryInterface>,

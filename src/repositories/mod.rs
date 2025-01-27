@@ -3,3 +3,4 @@ pub mod course_repository;
 pub mod token_repository;
 pub mod grade_repository;
 pub mod deadline_repository;
+pub mod grade_overview_repository;

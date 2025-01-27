@@ -5,7 +5,12 @@ use crate::services::interfaces::provider_interface::ProviderInterface;
 use async_trait::async_trait;
 use std::error::Error;
 use std::sync::Arc;
-use crate::services::repositories::course_repository_interface::CourseRepositoryInterface;
+
+#[async_trait]
+pub trait CourseRepositoryInterface: Send + Sync {
+    async fn save(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>>;
+}
 
 pub struct CourseService  {
     course_repository: Arc<dyn CourseRepositoryInterface>,

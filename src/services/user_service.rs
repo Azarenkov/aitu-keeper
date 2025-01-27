@@ -4,7 +4,12 @@ use async_trait::async_trait;
 use crate::models::user::user_model::User;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
-use crate::services::repositories::user_repository_interface::UserRepositoryInterface;
+
+#[async_trait]
+pub trait UserRepositoryInterface: Send + Sync {
+    async fn find_by_token(&self, token: &str) -> Result<User, Box<dyn Error>>;
+    async fn save(&self, user: &User, token: &str) -> Result<(), Box<dyn Error>>;
+}
 
 pub struct UserService  {
     user_repository: Arc<dyn UserRepositoryInterface>,
