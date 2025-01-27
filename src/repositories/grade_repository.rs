@@ -31,12 +31,9 @@ impl GradeRepositoryInterface for GradeRepository {
 
         if let Some(doc) = doc {
             if let Some(Bson::Array(grades_array)) = doc.get("grades") {
-                let grades: Result<Vec<Grade>, _> = grades_array
-                    .iter()
-                    .map(|grade| from_bson::<Grade>(grade.clone()))
-                    .collect();
-
-                grades.map_err(|e| e.into())
+                let bson = Bson::from(grades_array);
+                let grades = from_bson::<Vec<Grade>>(bson)?;
+                Ok(grades)
             } else {
                 Err("The 'grades' field is missing".into())
             }

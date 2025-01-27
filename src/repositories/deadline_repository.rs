@@ -1,10 +1,11 @@
+use crate::models::deadline::Deadline;
+use crate::repositories::interfaces::deadline_repository_interface::DeadlineRepositoryInterface;
+use async_trait::async_trait;
+use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
+use mongodb::Collection;
 use std::error::Error;
 use std::sync::Arc;
-use async_trait::async_trait;
-use mongodb::bson::{doc, to_bson, Document};
-use mongodb::Collection;
-use crate::models::deadline::{Deadline, Events};
-use crate::repositories::interfaces::deadline_repository_interface::DeadlineRepositoryInterface;
+use crate::models::grade::Grade;
 
 pub struct DeadlineRepository {
     collection: Arc<Collection<Document>>,
@@ -27,6 +28,18 @@ impl DeadlineRepositoryInterface for DeadlineRepository {
     }
 
     async fn find_by_token(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>> {
-        todo!()
+        let doc = self.collection.find_one(doc! {"_id": token}).await?;
+        if let Some(doc) = doc {
+            if let Some(Bson::Array(deadlines_array)) = doc.get("deadlines") {
+                let bson = Bson::from(deadlines_array);
+                let deadlines = from_bson::<Vec<Deadline>>(bson)?;
+                Ok(deadlines)
+            } else {
+                Err("The 'deadlines' field is missing".into())
+            }
+            
+        } else {
+            Err("Deadlines not found.".into())
+        }
     }
 }

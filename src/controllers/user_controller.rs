@@ -1,12 +1,11 @@
-use std::error::Error;
 use crate::controllers::shared::app_state::AppState;
 use crate::models::token::Token;
 use crate::services::interfaces::course_service_interface::CourseServiceInteface;
+use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
 use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
-use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(

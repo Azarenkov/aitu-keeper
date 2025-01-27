@@ -19,6 +19,7 @@ use crate::services::course_service::CourseService;
 use crate::services::token_service::TokenService;
 use crate::services::user_service::UserService;
 use infrastructure::client::moodle_client::MoodleClient;
+use crate::controllers::deadline_controller::deadline_routes;
 use crate::controllers::grade_controller::grade_routes;
 use crate::repositories::deadline_repository::DeadlineRepository;
 use crate::repositories::grade_repository::GradeRepository;
@@ -53,6 +54,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .configure(user_routes)
             .configure(course_routes)
             .configure(grade_routes)
+            .configure(deadline_routes)
             // .app_data(web::Data::new(semaphore.clone()))
     })
     .bind("0.0.0.0:8080")?

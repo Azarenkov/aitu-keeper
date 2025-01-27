@@ -7,7 +7,6 @@ use async_trait::async_trait;
 use chrono::{NaiveTime, Timelike, Utc};
 use regex::Regex;
 use std::error::Error;
-use std::ptr::{null, null_mut};
 use std::sync::Arc;
 
 pub struct DeadlineService  {
@@ -24,7 +23,7 @@ impl DeadlineService {
 #[async_trait(?Send)]
 impl DeadlineServiceInterface for DeadlineService {
     async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>> {
-        todo!()
+        self.deadline_repository.find_by_token(token).await
     }
 
     async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
@@ -60,7 +59,7 @@ fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>, Box<dyn E
             seconds_after_mid = 0;
         }
 
-        if deadline.timeusermidnight + seconds_after_mid >  current_unix_time.try_into().unwrap() {
+        if deadline.timeusermidnight + seconds_after_mid >  current_unix_time {
             let time_description = extract_date_and_time(&deadline.formattedtime).unwrap_or_else(|| "No time".to_string());
             deadline.formattedtime = time_description;
         }
