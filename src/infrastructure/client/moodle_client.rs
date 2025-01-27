@@ -4,6 +4,7 @@ use crate::models::user::User;
 use crate::services::interfaces::provider_interface::ProviderInterface;
 use async_trait::async_trait;
 use reqwest::{Client, Error};
+use crate::models::deadline::Events;
 
 pub struct MoodleClient {
     client: Client,
@@ -53,6 +54,16 @@ impl ProviderInterface for MoodleClient {
         );
         let response = self.client.get(&url).send().await?;
         response.json::<UserGrades>().await
+    }
+
+    async fn get_deadline_by_course_id(&self, token: &str, course_id: i64) -> Result<Events, Error> {
+        let url = format!("{}wstoken={}&wsfunction=core_calendar_get_action_events_by_course&moodlewsrestformat=json&courseid={}",
+            self.base_url,
+            token,
+            course_id,
+        );
+        let response = self.client.get(&url).send().await?;
+        response.json::<Events>().await
     }
 }
 
