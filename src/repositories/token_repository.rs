@@ -4,7 +4,7 @@ use mongodb::bson::{doc, Document};
 use mongodb::Collection;
 use std::error::Error;
 use std::sync::Arc;
-use crate::services::token_service::TokenRepositoryInterface;
+use crate::services::data_service::TokenRepositoryInterface;
 
 pub struct TokenRepository {
     collection: Arc<Collection<Document>>

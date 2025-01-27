@@ -11,7 +11,7 @@ pub fn course_routes(cfg: &mut web::ServiceConfig) {
 
 #[get("/get_courses/{token}")]
 async fn get_courses(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
-    match app_state.course_service.get_courses(&token.into_inner()).await {
+    match app_state.data_service.get_courses(&token.into_inner()).await {
         Ok(courses) => HttpResponse::Ok().json(courses),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }

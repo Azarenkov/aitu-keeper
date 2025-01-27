@@ -7,7 +7,6 @@ use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
 use crate::services::interfaces::token_service_interface::TokenServiceInterface;
 use crate::services::interfaces::user_service_interface::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
-use crate::services::interfaces::grade_overview_service_interface::GradeOverviewServiceInterface;
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -21,17 +20,17 @@ pub fn user_routes(cfg: &mut web::ServiceConfig) {
 #[post("/create_user")]
 async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) -> HttpResponse {
     // let token = token.into_inner().token;
-    match app_state.token_service.create_token(&token).await {
+    match app_state.data_service.create_token(&token).await {
         Ok(_) => {
-            match app_state.user_service.create_user(&token.token).await {
+            match app_state.data_service.create_user(&token.token).await {
                 Ok(user) => {
-                    match app_state.course_service.update_courses(&token.token, &user).await {
+                    match app_state.data_service.update_courses(&token.token, &user).await {
                         Ok(courses) => {
-                            match app_state.grade_service.update_grades(&token.token, &user, &courses).await {
+                            match app_state.data_service.update_grades(&token.token, &user, &courses).await {
                                 Ok(_) => {
-                                    match app_state.deadline_service.update_deadlines(&token.token, &courses).await {
+                                    match app_state.data_service.update_deadlines(&token.token, &courses).await {
                                         Ok(_) => {
-                                            match app_state.grade_overview_service.update_grades_overview(&token.token, &courses).await {
+                                            match app_state.data_service.update_grades_overview(&token.token, &courses).await {
                                                 Ok(_) => HttpResponse::Ok().json("User was created"),
                                                 Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
                                             }
@@ -63,7 +62,7 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
 
 #[get("/get_user/{token}")]
 async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
-    match app_state.user_service.get_user(&token.into_inner()).await {
+    match app_state.data_service.get_user(&token.into_inner()).await {
         Ok(user) => HttpResponse::Ok().json(user),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }
@@ -71,7 +70,7 @@ async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> H
 
 #[delete("/delete_user/{token}")]
 async fn delete_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
-    match app_state.token_service.delete_all(&token).await {
+    match app_state.data_service.delete_all(&token).await {
         Ok(_) => HttpResponse::Ok().json("User was deleted"),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }

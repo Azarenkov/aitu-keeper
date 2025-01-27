@@ -1,9 +1,8 @@
 use crate::models::course::course_model::Course;
-use crate::models::grade::grade_model::UserGrades;
+use crate::models::grade::grade_model::{GradesOverview, UserGrades};
 use crate::models::user::user_model::User;
 use async_trait::async_trait;
 use crate::models::deadline::deadline_model::Events;
-use crate::models::grade_overview::grade_overview_model::GradesOverview;
 
 #[async_trait]
 pub trait ProviderInterface: Send + Sync  {

@@ -4,7 +4,7 @@ use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::Collection;
 use std::error::Error;
 use std::sync::Arc;
-use crate::services::course_service::CourseRepositoryInterface;
+use crate::services::data_service::CourseRepositoryInterface;
 
 pub struct CourseRepository {
     collection: Arc<Collection<Document>>,

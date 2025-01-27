@@ -4,7 +4,7 @@ use mongodb::bson::{doc, to_bson, Document};
 use mongodb::{bson, Collection};
 use std::error::Error;
 use std::sync::Arc;
-use crate::services::user_service::UserRepositoryInterface;
+use crate::services::data_service::UserRepositoryInterface;
 
 pub struct UserRepository {
     collection: Arc<Collection<Document>>,
