@@ -1,7 +1,7 @@
-use crate::models::course::course_model::{compare_courses, create_body_message_course, Course};
-use crate::models::deadline::deadline_model::{compare_deadlines, create_body_message_deadline, sort_deadlines};
-use crate::models::grade::grade_model::{compare_grades, compare_grades_overview};
-use crate::models::user::user_model::{create_body_message_user, User};
+use crate::models::course::{compare_courses, Course};
+use crate::models::deadline::{compare_deadlines, create_body_message_deadline, sort_deadlines};
+use crate::models::grade::{compare_grades, compare_grades_overview, GradesOverview};
+use crate::models::user::{create_body_message_user, User};
 use crate::services::data_service::DataService;
 use crate::services::interfaces::{CourseServiceInterface, DeadlineServiceInterface, GradeServiceInterface, NotificationInterface, NotificationServiceInterface, UserServiceInterface};
 use async_trait::async_trait;
@@ -35,7 +35,7 @@ impl NotificationServiceInterface for NotificationService {
                 let courses = self.send_course(token, device_token, &user).await?;
                 self.send_deadline(token, device_token, &courses).await?;
                 self.send_grade(token, device_token, &user, &courses).await?;
-                // self.send_grade_overview(token, device_token).await?;
+                self.send_grade_overview(token, device_token, &courses).await?;
             }
         }
         Ok(())
@@ -61,7 +61,7 @@ impl NotificationServiceInterface for NotificationService {
 
         if !new_courses.is_empty() { 
             for new_course in new_courses {
-                let body = create_body_message_course(new_course);
+                let body = new_course.fullname.clone();
                 let message = self.notification_provider.create_message(device_token, "New course", &body);
                 self.notification_provider.send_notification(message).await?;
             }
@@ -130,19 +130,29 @@ impl NotificationServiceInterface for NotificationService {
     }
 
 
-    async fn send_grade_overview(&self, token: &str, device_token: &str) -> Result<(), Box<dyn Error>> {
-        let external_grades_overview = self.data_service.data_provider.get_grades_overview(token).await?.grades;
+    async fn send_grade_overview(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+        let mut external_grades_overview = self.data_service.data_provider.get_grades_overview(token).await?;
+        
+        for external_grade_overview in external_grades_overview.grades.iter_mut() {
+            for course in courses {
+                if external_grade_overview.courseid == course.id {
+                    external_grade_overview.course_name = Option::from(course.fullname.clone())
+                }
+            }
+        }
+        
         let grades_overview = self.data_service.get_grades_overview(token).await?;
-        let new_external_grades = compare_grades_overview(&external_grades_overview, &grades_overview);
+        let new_external_grades = compare_grades_overview(&external_grades_overview.grades, &grades_overview);
         if !new_external_grades.is_empty() {
-            for new_external_grade in new_external_grades {
+            for new_external_grade in new_external_grades.iter() {
                 let title = new_external_grade.course_name.clone().unwrap_or("-".to_string());
                 let body = format!("New total | {}", new_external_grade.grade);
                 let message = self.notification_provider.create_message(device_token, &title, &body);
                 self.notification_provider.send_notification(message).await?
             }
+            let data = GradesOverview{ grades: new_external_grades.into_iter().cloned().collect()};
+            self.data_service.grade_repository.save_grades_overview(token, &data).await?;
         }
-
 
         Ok(())
     }

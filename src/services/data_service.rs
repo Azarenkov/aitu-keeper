@@ -1,11 +1,11 @@
 use std::error::Error;
 use std::sync::Arc;
 use async_trait::async_trait;
-use crate::models::course::course_model::Course;
-use crate::models::deadline::deadline_model::{sort_deadlines, Deadline};
-use crate::models::grade::grade_model::{Grade, GradeOverview, GradesOverview};
-use crate::models::token::token_model::Token;
-use crate::models::user::user_model::User;
+use crate::models::course::Course;
+use crate::models::deadline::{sort_deadlines, Deadline};
+use crate::models::grade::{Grade, GradeOverview, GradesOverview};
+use crate::models::token::Token;
+use crate::models::user::User;
 use crate::services::interfaces::CourseServiceInterface;
 use crate::services::interfaces::DeadlineServiceInterface;
 use crate::services::interfaces::GradeServiceInterface;

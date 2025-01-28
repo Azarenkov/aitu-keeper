@@ -1,5 +1,5 @@
-use crate::models::token::token_model::Token;
-use crate::models::user::user_model::User;
+use crate::models::token::Token;
+use crate::models::user::User;
 use crate::services::data_service::{CourseRepositoryInterface, DeadlineRepositoryInterface, GradeRepositoryInterface, TokenRepositoryInterface, UserRepositoryInterface};
 use async_trait::async_trait;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
@@ -7,9 +7,9 @@ use mongodb::{bson, Collection};
 use std::error::Error;
 use std::sync::Arc;
 use futures_util::TryStreamExt;
-use crate::models::course::course_model::Course;
-use crate::models::deadline::deadline_model::Deadline;
-use crate::models::grade::grade_model::{Grade, GradeOverview, GradesOverview};
+use crate::models::course::Course;
+use crate::models::deadline::Deadline;
+use crate::models::grade::{Grade, GradeOverview, GradesOverview};
 
 pub struct DataRepository {
     collection: Arc<Collection<Document>>

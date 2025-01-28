@@ -1,11 +1,11 @@
 use std::error::Error;
 use async_trait::async_trait;
 use fcm_rs::models::Message;
-use crate::models::course::course_model::Course;
-use crate::models::deadline::deadline_model::{Deadline, Events};
-use crate::models::grade::grade_model::{Grade, GradeOverview, GradesOverview, UserGrades};
-use crate::models::token::token_model::Token;
-use crate::models::user::user_model::User;
+use crate::models::course::Course;
+use crate::models::deadline::{Deadline, Events};
+use crate::models::grade::{Grade, GradeOverview, GradesOverview, UserGrades};
+use crate::models::token::Token;
+use crate::models::user::User;
 
 #[async_trait]
 pub trait ProviderInterface: Send + Sync  {
@@ -62,5 +62,5 @@ pub trait NotificationServiceInterface: Send + Sync {
     async fn send_course(&self, token: &str, device_token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>>;
     async fn send_deadline(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
     async fn send_grade(&self, token: &str, device_token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>>;
-    async fn send_grade_overview(&self, token: &str, device_token: &str) -> Result<(), Box<dyn Error>>;
+    async fn send_grade_overview(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
 }

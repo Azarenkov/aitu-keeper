@@ -28,6 +28,7 @@ pub struct GradesOverview {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[derive(PartialEq)]
+#[derive(Clone)]
 pub struct GradeOverview {
     pub course_name: Option<String>,
     pub courseid: i64,
@@ -60,7 +61,7 @@ pub fn compare_grades_overview<'a>(external_grades_overview: &'a [GradeOverview]
     let mut new_grades_overview = Vec::new();
 
     for external_grade_overview in external_grades_overview {
-        if !grades_overview.contains(external_grade_overview) {
+        if !grades_overview.contains(external_grade_overview) && external_grade_overview.grade != "0.00" {
             new_grades_overview.push(external_grade_overview)
         }
     }

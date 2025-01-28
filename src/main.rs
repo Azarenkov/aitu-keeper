@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         data_repository.clone(),
     ));
     
-    let fcm_client = FcmClient::new(&"service_account_key.json".to_string()).await?;
+    let fcm_client = FcmClient::new("service_account_key.json").await?;
     
     let fcm = Arc::new(FirebaseMessagesClient::new(fcm_client));
     

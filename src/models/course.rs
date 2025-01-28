@@ -17,6 +17,3 @@ pub fn compare_courses<'a>(external_courses: &'a [Course], courses: &[Course]) -
     new_courses
 }
 
-pub fn create_body_message_course(course: &Course) -> String {
-    format!("{}", course.fullname)
-}

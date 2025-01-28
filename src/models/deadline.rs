@@ -77,7 +77,7 @@ pub fn compare_deadlines(external_deadlines: &[Deadline], deadlines: &[Deadline]
     for external_deadline in external_deadlines {
         if !deadlines.contains(external_deadline) {
             let course_name = deadlines.iter().find(|dealine| dealine.coursename == external_deadline.coursename);
-            if let Some(course_name) = course_name {
+            if let Some(_course_name) = course_name {
                 new_deadlines.push(external_deadline.clone());
             } else {
                 new_deadlines.push(external_deadline.clone());

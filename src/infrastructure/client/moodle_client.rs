@@ -1,9 +1,9 @@
-use crate::models::course::course_model::Course;
-use crate::models::grade::grade_model::{GradesOverview, UserGrades};
-use crate::models::user::user_model::User;
+use crate::models::course::Course;
+use crate::models::grade::{GradesOverview, UserGrades};
+use crate::models::user::User;
 use async_trait::async_trait;
 use reqwest::{Client, Error};
-use crate::models::deadline::deadline_model::Events;
+use crate::models::deadline::Events;
 use crate::services::interfaces::ProviderInterface;
 
 pub struct MoodleClient {

@@ -1,5 +1,5 @@
 use crate::controllers::shared::app_state::AppState;
-use crate::models::token::token_model::Token;
+use crate::models::token::Token;
 use crate::services::interfaces::TokenServiceInterface;
 use crate::services::interfaces::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
