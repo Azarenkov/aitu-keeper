@@ -5,14 +5,14 @@ pub struct UserGrades {
     pub usergrades: Vec<Grade>
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Grade {
     pub coursename: Option<String>,
     courseid: i64,
     gradeitems: Vec<GradeItems>
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[derive(PartialEq)]
 pub struct GradeItems {
     pub itemname: String,
@@ -42,9 +42,16 @@ pub fn compare_grades<'a>(external_grades: &'a [Grade], grades: &'a [Grade]) -> 
             if external_grade.courseid != grade.courseid {
                 continue
             }
-            for external_gradeitem in &external_grade.gradeitems {
-                if let Some(old_gradeitem) = grade.gradeitems.iter().find(|&item| item == external_gradeitem) {
-                    new_and_old_grades.push((external_gradeitem, old_gradeitem));
+            // for external_gradeitem in &external_grade.gradeitems {
+            //     if let Some(old_gradeitem) = grade.gradeitems.iter().find(|item| *item == external_gradeitem) {
+            //         new_and_old_grades.push((external_gradeitem.clone(), old_gradeitem.clone()));
+            //     }
+            // }
+            for external_gradeitem in external_grade.gradeitems.iter() {
+                for gradeitem in grade.gradeitems.iter() {
+                    if external_gradeitem.itemname == gradeitem.itemname && external_gradeitem.percentageformatted != external_gradeitem.percentageformatted {
+                        new_and_old_grades.push((external_gradeitem, gradeitem));
+                    }
                 }
             }
         }

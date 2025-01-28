@@ -71,9 +71,11 @@ impl NotificationServiceInterface for NotificationService {
     }
 
     async fn send_deadline(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
-        let mut new_deadlines = Vec::new();
+        let mut new_deadlines_vec = Vec::new();
         for course in courses {
             let deadlines = self.data_service.get_deadlines(token).await?;
+            
+            
             let mut external_deadlines = self.data_service.data_provider.get_deadline_by_course_id(token, course.id).await?.events;
 
             for sorted_deadline in external_deadlines.iter_mut() {
@@ -82,10 +84,9 @@ impl NotificationServiceInterface for NotificationService {
 
             let sorted_deadlines = sort_deadlines(&mut external_deadlines)?;
             for sorted_deadline in sorted_deadlines.iter() {
-                new_deadlines.push(sorted_deadline.clone());
+                new_deadlines_vec.push(sorted_deadline.clone());
             }
-
-
+            
             let new_deadlines = compare_deadlines(&sorted_deadlines, &deadlines);
             if !new_deadlines.is_empty() {
                 for new_deadline in new_deadlines {
@@ -95,16 +96,20 @@ impl NotificationServiceInterface for NotificationService {
                 }
             }
         }
-        self.data_service.deadline_repository.save(token, &new_deadlines).await?;
+        new_deadlines_vec.sort_by(|a, b| a.timeusermidnight.cmp(&b.timeusermidnight));
+        self.data_service.deadline_repository.save(token, &new_deadlines_vec).await?;
 
         Ok(())
     }
 
     async fn send_grade(&self, token: &str, device_token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>> {
         for course in courses {
-            let external_grades = self.data_service.data_provider.get_grades_by_course_id(token, user.userid, course.id).await?.usergrades;
+            let mut external_grades = self.data_service.data_provider.get_grades_by_course_id(token, user.userid, course.id).await?.usergrades;
+            for external_grade in external_grades.iter_mut() {
+                external_grade.coursename = Option::from(course.fullname.clone());
+            }
             let grades = self.data_service.get_grades(token).await?;
-            let new_grades = compare_grades(&external_grades, & grades);
+            let new_grades = compare_grades(&external_grades, &grades);
             if !new_grades.is_empty() {
                 for new_grade in new_grades {
                     let title = course.fullname.clone();
@@ -112,6 +117,7 @@ impl NotificationServiceInterface for NotificationService {
                     let message = self.notification_provider.create_message(device_token, &title, &body);
                     self.notification_provider.send_notification(message).await?
                 }
+                self.data_service.grade_repository.save(token, &external_grades).await?;
             }
         }
         Ok(())

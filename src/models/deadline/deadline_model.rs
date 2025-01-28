@@ -84,13 +84,13 @@ pub fn compare_deadlines(external_deadlines: &[Deadline], deadlines: &[Deadline]
             }
         }
     }
-    
+
     new_deadlines
 }
 
 pub fn create_body_message_deadline(deadline: &Deadline) -> String {
-    format!("Course: {}\nTask: {}\nUntil {}", 
-            deadline.coursename.clone().unwrap_or( "-".to_string()), 
-            deadline.name, 
+    format!("Course: {}\nTask: {}\nUntil {}",
+            deadline.coursename.clone().unwrap_or( "-".to_string()),
+            deadline.name,
             deadline.formattedtime)
 }
