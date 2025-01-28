@@ -23,28 +23,14 @@ impl NotificationInterface for FirebaseMessagesClient {
         }
     }
 
-    fn create_message(&self, device_token: &str, title: &str, body: &str, old_body: Option<&str>) -> Message {
-        let message;
-
-        if let Some(old_body) = old_body {
-            message = Message {
-                data: None,
-                token: Some(device_token.parse().unwrap()),
-                notification: Some(Notification {
-                    title: Some(title.parse().unwrap()),
-                    body: Some(format!("{} {}", old_body, body)),
-                }),
-            };
-        } else {
-            message = Message {
-                data: None,
-                token: Some(device_token.parse().unwrap()),
-                notification: Some(Notification {
-                    title: Some(title.parse().unwrap()),
-                    body: Some(body.parse().unwrap()),
-                }),
-            };
+    fn create_message(&self, device_token: &str, title: &str, body: &str) -> Message {
+        Message {
+            data: None,
+            token: Some(device_token.parse().unwrap()),
+            notification: Some(Notification {
+                title: Some(title.parse().unwrap()),
+                body: Some(body.parse().unwrap()),
+            }),
         }
-        message
     }
 }

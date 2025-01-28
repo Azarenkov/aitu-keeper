@@ -18,5 +18,5 @@ pub fn compare_courses<'a>(external_courses: &'a [Course], courses: &[Course]) -
 }
 
 pub fn create_body_message_course(course: &Course) -> String {
-    format!("Course: {}", course.fullname)
+    format!("{}", course.fullname)
 }

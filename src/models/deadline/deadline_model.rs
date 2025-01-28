@@ -1,15 +1,15 @@
 use chrono::Timelike;
-use std::error::Error;
 use chrono::{NaiveTime, Utc};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Events {
     pub events: Vec<Deadline>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Deadline {
     pub name: String,
     pub timeusermidnight: i64,
@@ -70,4 +70,27 @@ pub fn extract_date_and_time(html: &str) -> Option<String> {
     } else {
         None
     }
+}
+
+pub fn compare_deadlines(external_deadlines: &[Deadline], deadlines: &[Deadline]) -> Vec<Deadline> {
+    let mut new_deadlines = Vec::new();
+    for external_deadline in external_deadlines {
+        if !deadlines.contains(external_deadline) {
+            let course_name = deadlines.iter().find(|dealine| dealine.coursename == external_deadline.coursename);
+            if let Some(course_name) = course_name {
+                new_deadlines.push(external_deadline.clone());
+            } else {
+                new_deadlines.push(external_deadline.clone());
+            }
+        }
+    }
+    
+    new_deadlines
+}
+
+pub fn create_body_message_deadline(deadline: &Deadline) -> String {
+    format!("Course: {}\nTask: {}\nUntil {}", 
+            deadline.coursename.clone().unwrap_or( "-".to_string()), 
+            deadline.name, 
+            deadline.formattedtime)
 }

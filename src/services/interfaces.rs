@@ -20,7 +20,7 @@ pub trait ProviderInterface: Send + Sync  {
 #[async_trait]
 pub trait NotificationInterface: Send + Sync {
     async fn send_notification(&self, message: Message) -> Result<(), Box<dyn Error>>;
-    fn create_message(&self, device_token: &str, title: &str, body: &str, old_body: Option<&str>) -> Message;
+    fn create_message(&self, device_token: &str, title: &str, body: &str) -> Message;
 }
 
 #[async_trait(?Send)]
@@ -60,4 +60,7 @@ pub trait NotificationServiceInterface: Send + Sync {
     async fn send_notifications(&self) -> Result<(), Box<dyn Error>>;
     async fn send_user_info(&self, token: &str, device_token: &str) -> Result<User, Box<dyn Error>>;
     async fn send_course(&self, token: &str, device_token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>>;
+    async fn send_deadline(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
+    async fn send_grade(&self, token: &str, device_token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>>;
+    async fn send_grade_overview(&self, token: &str, device_token: &str) -> Result<(), Box<dyn Error>>;
 }

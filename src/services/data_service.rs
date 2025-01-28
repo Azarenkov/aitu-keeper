@@ -49,10 +49,10 @@ pub trait GradeRepositoryInterface: Send + Sync {
 pub struct DataService  {
     pub data_provider: Arc<dyn ProviderInterface>,
     pub token_repository: Arc<dyn TokenRepositoryInterface>,
-    user_repository: Arc<dyn UserRepositoryInterface>,
-    course_repository: Arc<dyn CourseRepositoryInterface>,
-    grade_repository: Arc<dyn GradeRepositoryInterface>,
-    deadline_repository: Arc<dyn DeadlineRepositoryInterface>,
+    pub user_repository: Arc<dyn UserRepositoryInterface>,
+    pub course_repository: Arc<dyn CourseRepositoryInterface>,
+    pub grade_repository: Arc<dyn GradeRepositoryInterface>,
+    pub deadline_repository: Arc<dyn DeadlineRepositoryInterface>,
 }
 
 impl DataService {
@@ -127,7 +127,8 @@ impl GradeServiceInterface for DataService {
 
         for course in courses {
             let external_grades = self.data_provider.get_grades_by_course_id(token, user.userid, course.id).await?.usergrades;
-            for grade in external_grades {
+            for mut grade in external_grades {
+                grade.coursename = Option::from(course.fullname.clone());
                 grades.push(grade);
             }
         }
