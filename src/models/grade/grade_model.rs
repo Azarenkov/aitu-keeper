@@ -15,6 +15,7 @@ pub struct Grade {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[derive(PartialEq)]
 pub struct GradeItems {
+    id: i64,
     pub itemname: String,
     pub percentageformatted: String
 }
@@ -42,14 +43,9 @@ pub fn compare_grades<'a>(external_grades: &'a [Grade], grades: &'a [Grade]) -> 
             if external_grade.courseid != grade.courseid {
                 continue
             }
-            // for external_gradeitem in &external_grade.gradeitems {
-            //     if let Some(old_gradeitem) = grade.gradeitems.iter().find(|item| *item == external_gradeitem) {
-            //         new_and_old_grades.push((external_gradeitem.clone(), old_gradeitem.clone()));
-            //     }
-            // }
             for external_gradeitem in external_grade.gradeitems.iter() {
                 for gradeitem in grade.gradeitems.iter() {
-                    if external_gradeitem.itemname == gradeitem.itemname && external_gradeitem.percentageformatted != external_gradeitem.percentageformatted {
+                    if external_gradeitem.id == gradeitem.id && external_gradeitem.percentageformatted != gradeitem.percentageformatted {
                         new_and_old_grades.push((external_gradeitem, gradeitem));
                     }
                 }
@@ -68,7 +64,7 @@ pub fn compare_grades_overview<'a>(external_grades_overview: &'a [GradeOverview]
             new_grades_overview.push(external_grade_overview)
         }
     }
-    
+
     new_grades_overview
 }
 

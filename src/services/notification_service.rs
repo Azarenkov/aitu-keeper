@@ -34,7 +34,7 @@ impl NotificationServiceInterface for NotificationService {
                 let user = self.send_user_info(token, device_token).await?;
                 let courses = self.send_course(token, device_token, &user).await?;
                 self.send_deadline(token, device_token, &courses).await?;
-                // self.send_grade(token, device_token, &user, &courses).await?;
+                self.send_grade(token, device_token, &user, &courses).await?;
                 // self.send_grade_overview(token, device_token).await?;
             }
         }
@@ -103,10 +103,15 @@ impl NotificationServiceInterface for NotificationService {
     }
 
     async fn send_grade(&self, token: &str, device_token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+        let mut new_grades_vec = Vec::new();
         for course in courses {
             let mut external_grades = self.data_service.data_provider.get_grades_by_course_id(token, user.userid, course.id).await?.usergrades;
             for external_grade in external_grades.iter_mut() {
                 external_grade.coursename = Option::from(course.fullname.clone());
+            }
+            for external_grade in external_grades.iter() {
+                new_grades_vec.push(external_grade.clone());
+
             }
             let grades = self.data_service.get_grades(token).await?;
             let new_grades = compare_grades(&external_grades, &grades);
@@ -117,9 +122,10 @@ impl NotificationServiceInterface for NotificationService {
                     let message = self.notification_provider.create_message(device_token, &title, &body);
                     self.notification_provider.send_notification(message).await?
                 }
-                self.data_service.grade_repository.save(token, &external_grades).await?;
             }
         }
+        self.data_service.grade_repository.save(token, &new_grades_vec).await?;
+
         Ok(())
     }
 
