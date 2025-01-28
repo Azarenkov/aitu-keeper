@@ -1,9 +1,0 @@
-use std::error::Error;
-use async_trait::async_trait;
-use crate::models::user::user_model::User;
-
-#[async_trait]
-pub trait UserServiceInterface: Send + Sync {
-    async fn create_user(&self, token: &str) -> Result<User, Box<dyn Error>>;
-    async fn get_user(&self, token: &str) -> Result<User, Box<dyn Error>>;
-}

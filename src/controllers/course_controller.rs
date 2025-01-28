@@ -1,4 +1,4 @@
-use crate::services::interfaces::course_service_interface::CourseServiceInteface;
+use crate::services::interfaces::CourseServiceInterface;
 use actix_web::{get, web, HttpResponse};
 use crate::controllers::shared::app_state::AppState;
 

@@ -1,7 +1,7 @@
 use crate::controllers::shared::app_state::AppState;
 use crate::models::token::token_model::Token;
-use crate::services::interfaces::token_service_interface::TokenServiceInterface;
-use crate::services::interfaces::user_service_interface::UserServiceInterface;
+use crate::services::interfaces::TokenServiceInterface;
+use crate::services::interfaces::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
@@ -46,7 +46,7 @@ async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> H
 
 #[delete("/delete_user/{token}")]
 async fn delete_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
-    match app_state.data_service.delete_all(&token).await {
+    match app_state.data_service.delete_one_user(&token).await {
         Ok(_) => HttpResponse::Ok().json("User was deleted"),
         Err(e) => HttpResponse::NotFound().body(e.to_string()),
     }

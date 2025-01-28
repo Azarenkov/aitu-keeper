@@ -1,6 +1,6 @@
 use actix_web::{get, web, HttpResponse};
 use crate::controllers::shared::app_state::AppState;
-use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
+use crate::services::interfaces::GradeServiceInterface;
 
 pub fn grade_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(

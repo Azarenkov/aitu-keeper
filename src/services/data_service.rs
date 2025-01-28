@@ -2,21 +2,21 @@ use std::error::Error;
 use std::sync::Arc;
 use async_trait::async_trait;
 use crate::models::course::course_model::Course;
-use crate::models::deadline::deadline_model::Deadline;
-use crate::models::deadline::sort::sort_deadlines;
+use crate::models::deadline::deadline_model::{sort_deadlines, Deadline};
 use crate::models::grade::grade_model::{Grade, GradeOverview, GradesOverview};
 use crate::models::token::token_model::Token;
 use crate::models::user::user_model::User;
-use crate::services::interfaces::course_service_interface::CourseServiceInteface;
-use crate::services::interfaces::deadline_service_interface::DeadlineServiceInterface;
-use crate::services::interfaces::grade_service_interface::GradeServiceInteface;
-use crate::services::interfaces::provider_interface::ProviderInterface;
-use crate::services::interfaces::token_service_interface::TokenServiceInterface;
-use crate::services::interfaces::user_service_interface::UserServiceInterface;
+use crate::services::interfaces::CourseServiceInterface;
+use crate::services::interfaces::DeadlineServiceInterface;
+use crate::services::interfaces::GradeServiceInterface;
+use crate::services::interfaces::ProviderInterface;
+use crate::services::interfaces::TokenServiceInterface;
+use crate::services::interfaces::UserServiceInterface;
 
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {
     async fn save(&self, token: &Token) -> Result<(), Box<dyn Error>>;
+    async fn find_all_device_tokens(&self) -> Result<Vec<Token>,Box<dyn Error>>;
     async fn delete(&self, token: &str) -> Result<(), Box<dyn Error>>;
 }
 
@@ -47,8 +47,8 @@ pub trait GradeRepositoryInterface: Send + Sync {
 }
 
 pub struct DataService  {
-    data_provider: Arc<dyn ProviderInterface>,
-    token_repository: Arc<dyn TokenRepositoryInterface>,
+    pub data_provider: Arc<dyn ProviderInterface>,
+    pub token_repository: Arc<dyn TokenRepositoryInterface>,
     user_repository: Arc<dyn UserRepositoryInterface>,
     course_repository: Arc<dyn CourseRepositoryInterface>,
     grade_repository: Arc<dyn GradeRepositoryInterface>,
@@ -80,7 +80,7 @@ impl TokenServiceInterface for DataService {
         }
     }
 
-    async fn delete_all(&self, token: &str) -> Result<(), Box<dyn Error>> {
+    async fn delete_one_user(&self, token: &str) -> Result<(), Box<dyn Error>> {
         self.token_repository.delete(token).await
     }
 }
@@ -104,7 +104,7 @@ impl UserServiceInterface for DataService {
 }
 
 #[async_trait]
-impl CourseServiceInteface for DataService {
+impl CourseServiceInterface for DataService {
     async fn get_courses(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>> {
         self.course_repository.find_by_token(token).await
     }
@@ -117,7 +117,7 @@ impl CourseServiceInteface for DataService {
 }
 
 #[async_trait]
-impl GradeServiceInteface for DataService {
+impl GradeServiceInterface for DataService {
     async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>> {
         self.grade_repository.find_by_token(token).await
     }

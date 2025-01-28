@@ -4,7 +4,7 @@ use crate::models::user::user_model::User;
 use async_trait::async_trait;
 use reqwest::{Client, Error};
 use crate::models::deadline::deadline_model::Events;
-use crate::services::interfaces::provider_interface::ProviderInterface;
+use crate::services::interfaces::ProviderInterface;
 
 pub struct MoodleClient {
     client: Client,
