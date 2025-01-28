@@ -26,12 +26,10 @@ use crate::services::notification_service::NotificationService;
 async fn main() -> Result<(), Box<dyn Error>> {
     
     let db = Arc::new(connect("main").await?.collection("users"));
-    
     let base_url = "https://moodle.astanait.edu.kz/webservice/rest/server.php?".to_string();
     let moodle_client = Arc::new(MoodleClient::new(base_url));
     
     let data_repository = Arc::new(DataRepository::new(db.clone()));
-
     let data_service = Arc::new(DataService::new(
         moodle_client,
         data_repository.clone(),
@@ -42,7 +40,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     
     let fcm_client = FcmClient::new("service_account_key.json").await?;
-    
     let fcm = Arc::new(FirebaseMessagesClient::new(fcm_client));
     
     let notification_service = Arc::new(NotificationService::new(data_service.clone(), fcm));
@@ -64,7 +61,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .configure(course_routes)
             .configure(grade_routes)
             .configure(deadline_routes)
-            // .app_data(web::Data::new(semaphore.clone()))
     })
     .bind("0.0.0.0:8080")?
     .run()

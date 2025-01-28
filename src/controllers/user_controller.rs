@@ -15,7 +15,7 @@ pub fn user_routes(cfg: &mut web::ServiceConfig) {
 
 #[post("/create_user")]
 async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) -> HttpResponse {
-    // let token = token.into_inner().token;
+    
     match app_state.data_service.create_token(&token).await {
         Ok(_) => {
             tokio::task::spawn(async move {
@@ -32,6 +32,7 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
                 HttpResponse::InternalServerError().body("error")
             }
         }
+      
     }
 
 }

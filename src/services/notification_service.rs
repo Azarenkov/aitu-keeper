@@ -75,7 +75,6 @@ impl NotificationServiceInterface for NotificationService {
         for course in courses {
             let deadlines = self.data_service.get_deadlines(token).await?;
             
-            
             let mut external_deadlines = self.data_service.data_provider.get_deadline_by_course_id(token, course.id).await?.events;
 
             for sorted_deadline in external_deadlines.iter_mut() {
@@ -90,7 +89,7 @@ impl NotificationServiceInterface for NotificationService {
             let new_deadlines = compare_deadlines(&sorted_deadlines, &deadlines);
             if !new_deadlines.is_empty() {
                 for new_deadline in new_deadlines {
-                    let body = create_body_message_deadline(&new_deadline);
+                    let body = create_body_message_deadline(new_deadline);
                     let message = self.notification_provider.create_message(device_token, "New deadline", &body);
                     self.notification_provider.send_notification(message).await?
                 }
@@ -106,15 +105,18 @@ impl NotificationServiceInterface for NotificationService {
         let mut new_grades_vec = Vec::new();
         for course in courses {
             let mut external_grades = self.data_service.data_provider.get_grades_by_course_id(token, user.userid, course.id).await?.usergrades;
+            
             for external_grade in external_grades.iter_mut() {
                 external_grade.coursename = Option::from(course.fullname.clone());
             }
+            
             for external_grade in external_grades.iter() {
                 new_grades_vec.push(external_grade.clone());
-
             }
+            
             let grades = self.data_service.get_grades(token).await?;
             let new_grades = compare_grades(&external_grades, &grades);
+            
             if !new_grades.is_empty() {
                 for new_grade in new_grades {
                     let title = course.fullname.clone();

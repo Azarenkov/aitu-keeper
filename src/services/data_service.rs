@@ -76,7 +76,7 @@ impl TokenServiceInterface for DataService {
         self.data_provider.valid_token(&token.token).await?;
         match self.token_repository.save(token).await {
             Ok(_) => Ok(()),
-            Err(_) => Err("User already exist".into()),
+            Err(_e) => Err("User already exist".into()),
         }
     }
 

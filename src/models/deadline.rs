@@ -72,15 +72,15 @@ pub fn extract_date_and_time(html: &str) -> Option<String> {
     }
 }
 
-pub fn compare_deadlines(external_deadlines: &[Deadline], deadlines: &[Deadline]) -> Vec<Deadline> {
+pub fn compare_deadlines<'a>(external_deadlines: &'a [Deadline], deadlines: &[Deadline]) -> Vec<&'a Deadline> {
     let mut new_deadlines = Vec::new();
     for external_deadline in external_deadlines {
         if !deadlines.contains(external_deadline) {
             let course_name = deadlines.iter().find(|dealine| dealine.coursename == external_deadline.coursename);
             if let Some(_course_name) = course_name {
-                new_deadlines.push(external_deadline.clone());
+                new_deadlines.push(external_deadline);
             } else {
-                new_deadlines.push(external_deadline.clone());
+                new_deadlines.push(external_deadline);
             }
         }
     }
