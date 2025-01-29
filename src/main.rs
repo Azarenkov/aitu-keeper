@@ -1,5 +1,5 @@
 use std::env;
-use actix_web::{App, HttpServer};
+use actix_web::{guard, web, App, HttpResponse, HttpServer};
 use std::error::Error;
 use std::sync::Arc;
 use std::time::Duration;
@@ -37,6 +37,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .configure(course_routes)
             .configure(grade_routes)
             .configure(deadline_routes)
+            .default_service(
+                web::route()
+                    .guard(guard::Not(guard::Get()))
+                    .to(HttpResponse::MethodNotAllowed),
+            )
     })
         .bind("0.0.0.0:8080")?
         .run()
