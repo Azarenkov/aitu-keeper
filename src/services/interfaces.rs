@@ -23,35 +23,41 @@ pub trait NotificationInterface: Send + Sync {
     fn create_message(&self, device_token: &str, title: &str, body: &str) -> Message;
 }
 
-#[async_trait(?Send)]
-pub trait TokenServiceInterface {
+#[async_trait]
+pub trait TokenServiceInterface: Send + Sync {
     async fn create_token(&self, token: &Token) -> Result<(), Box<dyn Error>>;
     async fn delete_one_user(&self, token: &str) -> Result<(), Box<dyn Error>>;
+    async fn find_all_tokens(&self) -> Result<Vec<Token>, Box<dyn Error>>;
 }
 
 #[async_trait]
 pub trait UserServiceInterface: Send + Sync {
     async fn create_user(&self, token: &str) -> Result<User, Box<dyn Error>>;
+    async fn save_user(&self, token: &str, user: &User) -> Result<(), Box<dyn Error>>;
     async fn get_user(&self, token: &str) -> Result<User, Box<dyn Error>>;
 }
 
 #[async_trait]
 pub trait CourseServiceInterface: Send + Sync  {
     async fn get_courses(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>>;
+    async fn save_courses(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
     async fn update_courses(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>>;
 }
 
 #[async_trait]
 pub trait GradeServiceInterface: Send + Sync  {
     async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>>;
+    async fn save_grades(&self, token: &str, grades: &[Grade]) -> Result<(), Box<dyn Error>>;
     async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>>;
     async fn get_grades_overview(&self, token: &str) -> Result<Vec<GradeOverview>, Box<dyn Error>>;
+    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<(), Box<dyn Error>>;
     async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
 }
 
 #[async_trait]
 pub trait DeadlineServiceInterface: Send + Sync {
     async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>>;
+    async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<(), Box<dyn Error>>;
     async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
 }
 

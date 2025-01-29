@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     let data_repository = Arc::new(DataRepository::new(db.clone()));
     let data_service = Arc::new(DataService::new(
-        moodle_client,
+        moodle_client.clone(),
         data_repository.clone(),
         data_repository.clone(),
         data_repository.clone(),
@@ -42,7 +42,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let fcm_client = FcmClient::new("service_account_key.json").await?;
     let fcm = Arc::new(FirebaseMessagesClient::new(fcm_client));
     
-    let notification_service = Arc::new(NotificationService::new(data_service.clone(), fcm));
+    let notification_service = Arc::new(NotificationService::new(
+        fcm, 
+        moodle_client,
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+    ));
     
     tokio::spawn(async move{
         loop {

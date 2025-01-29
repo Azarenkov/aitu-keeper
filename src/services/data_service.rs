@@ -1,9 +1,6 @@
-use std::error::Error;
-use std::sync::Arc;
-use async_trait::async_trait;
 use crate::models::course::Course;
 use crate::models::deadline::{sort_deadlines, Deadline};
-use crate::models::grade::{Grade, GradeOverview, GradesOverview};
+use crate::models::grade::{sort_grades_overview, Grade, GradeOverview, GradesOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
 use crate::services::interfaces::CourseServiceInterface;
@@ -12,6 +9,9 @@ use crate::services::interfaces::GradeServiceInterface;
 use crate::services::interfaces::ProviderInterface;
 use crate::services::interfaces::TokenServiceInterface;
 use crate::services::interfaces::UserServiceInterface;
+use async_trait::async_trait;
+use std::error::Error;
+use std::sync::Arc;
 
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {
@@ -42,17 +42,17 @@ pub trait DeadlineRepositoryInterface: Send + Sync {
 pub trait GradeRepositoryInterface: Send + Sync {
     async fn save(&self, token: &str, grades: &[Grade]) -> Result<(), Box<dyn Error>>;
     async fn find_by_token(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>>;
-    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<(), Box<dyn Error>>;
+    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<(), Box<dyn Error>>;    
     async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>, Box<dyn Error>>;
 }
 
 pub struct DataService  {
-    pub data_provider: Arc<dyn ProviderInterface>,
-    pub token_repository: Arc<dyn TokenRepositoryInterface>,
-    pub user_repository: Arc<dyn UserRepositoryInterface>,
-    pub course_repository: Arc<dyn CourseRepositoryInterface>,
-    pub grade_repository: Arc<dyn GradeRepositoryInterface>,
-    pub deadline_repository: Arc<dyn DeadlineRepositoryInterface>,
+    data_provider: Arc<dyn ProviderInterface>,
+    token_repository: Arc<dyn TokenRepositoryInterface>,
+    user_repository: Arc<dyn UserRepositoryInterface>,
+    course_repository: Arc<dyn CourseRepositoryInterface>,
+    grade_repository: Arc<dyn GradeRepositoryInterface>,
+    deadline_repository: Arc<dyn DeadlineRepositoryInterface>,
 }
 
 impl DataService {
@@ -70,7 +70,7 @@ impl DataService {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl TokenServiceInterface for DataService {
     async fn create_token(&self, token: &Token) -> Result<(), Box<dyn Error>> {
         self.data_provider.valid_token(&token.token).await?;
@@ -82,6 +82,10 @@ impl TokenServiceInterface for DataService {
 
     async fn delete_one_user(&self, token: &str) -> Result<(), Box<dyn Error>> {
         self.token_repository.delete(token).await
+    }
+
+    async fn find_all_tokens(&self) -> Result<Vec<Token>, Box<dyn Error>> {
+        self.token_repository.find_all_device_tokens().await
     }
 }
 
@@ -98,6 +102,11 @@ impl UserServiceInterface for DataService {
 
     }
 
+    async fn save_user(&self, token: &str, user: &User) -> Result<(), Box<dyn Error>> {
+        self.user_repository.save(user, token).await
+    }
+
+
     async fn get_user(&self, token: &str) -> Result<User, Box<dyn Error>> {
         self.user_repository.find_by_token(token).await
     }
@@ -107,6 +116,10 @@ impl UserServiceInterface for DataService {
 impl CourseServiceInterface for DataService {
     async fn get_courses(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>> {
         self.course_repository.find_by_token(token).await
+    }
+
+    async fn save_courses(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+        self.course_repository.save(token, courses).await
     }
 
     async fn update_courses(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>> {
@@ -120,6 +133,10 @@ impl CourseServiceInterface for DataService {
 impl GradeServiceInterface for DataService {
     async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>> {
         self.grade_repository.find_by_token(token).await
+    }
+
+    async fn save_grades(&self, token: &str, grades: &[Grade]) -> Result<(), Box<dyn Error>> {
+        self.grade_repository.save(token, grades).await
     }
 
     async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>> {
@@ -141,6 +158,10 @@ impl GradeServiceInterface for DataService {
         self.grade_repository.find_grades_overview_by_token(token).await
     }
 
+    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<(), Box<dyn Error>> {
+        self.grade_repository.save_grades_overview(token, grades_overview).await
+    }
+
     async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
         let mut grades_overview = self.data_provider.get_grades_overview(token).await?;
 
@@ -152,7 +173,7 @@ impl GradeServiceInterface for DataService {
                 }
             }
         }
-
+        sort_grades_overview(&mut grades_overview.grades);
         self.grade_repository.save_grades_overview(token, &grades_overview).await?;
         Ok(())
     }
@@ -162,6 +183,10 @@ impl GradeServiceInterface for DataService {
 impl DeadlineServiceInterface for DataService {
     async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>> {
         self.deadline_repository.find_by_token(token).await
+    }
+
+    async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<(), Box<dyn Error>> {
+        self.deadline_repository.save(token, deadlines).await
     }
 
     async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {

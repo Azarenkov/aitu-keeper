@@ -57,12 +57,16 @@ pub fn compare_grades<'a>(external_grades: &'a [Grade], grades: &'a [Grade]) -> 
     new_and_old_grades
 }
 
+pub fn sort_grades_overview(grades_overview: &mut Vec<GradeOverview>) {
+    grades_overview.retain(|grade_overview| grade_overview.grade != "0.00");
+}
+
 pub fn compare_grades_overview<'a>(external_grades_overview: &'a [GradeOverview], grades_overview: &[GradeOverview]) -> Vec<&'a GradeOverview> {
     let mut new_grades_overview = Vec::new();
 
     for external_grade_overview in external_grades_overview {
-        if !grades_overview.contains(external_grade_overview) && external_grade_overview.grade != "0.00" {
-            new_grades_overview.push(external_grade_overview)
+        if !grades_overview.contains(external_grade_overview) {
+            new_grades_overview.push(external_grade_overview);
         }
     }
 
