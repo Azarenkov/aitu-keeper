@@ -12,3 +12,4 @@ impl Token {
         Self { token, device_token }
     }
 }
+

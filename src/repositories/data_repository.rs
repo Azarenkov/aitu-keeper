@@ -10,6 +10,7 @@ use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::{bson, Collection};
 use std::error::Error;
 use std::sync::Arc;
+use crate::models::errors::RegistrationError;
 
 pub struct DataRepository {
     collection: Arc<Collection<Document>>
@@ -24,9 +25,12 @@ impl DataRepository {
 #[async_trait]
 impl TokenRepositoryInterface for DataRepository {
     async fn save(&self, token: &Token) -> Result<(), Box<dyn Error>> {
-        let doc = doc! {
-            "_id": token.token.clone(),
-        };
+        let doc = doc! {"_id": &token.token };
+        let existing_token = self.collection.find_one(doc.clone()).await?;
+
+        if existing_token.is_some() {
+            return Err(Box::new(RegistrationError::UserAlreadyExists));
+        }
 
         self.collection.insert_one(doc).await?;
         Ok(())

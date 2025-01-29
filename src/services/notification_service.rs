@@ -30,16 +30,17 @@ impl NotificationServiceInterface for NotificationService {
 
         let tokens_vec = self.token_service.find_all_tokens().await?;
         for tokens in tokens_vec.iter() {
+            let token = &tokens.token;
             if let Some(device_token) = &tokens.device_token {
-                let token = &tokens.token;
-
+                
                 let user = self.send_user_info(token, device_token).await?;
                 let courses = self.send_course(token, device_token, &user).await?;
                 self.send_deadline(token, device_token, &courses).await?;
                 self.send_grade(token, device_token, &user, &courses).await?;
                 self.send_grade_overview(token, device_token, &courses).await?;
+                
             } else { 
-                todo!()
+                self.token_service.fetch_and_save_data(token).await?;
             }
         }
         Ok(())

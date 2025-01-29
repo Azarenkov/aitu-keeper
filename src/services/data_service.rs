@@ -12,6 +12,7 @@ use crate::services::interfaces::UserServiceInterface;
 use async_trait::async_trait;
 use std::error::Error;
 use std::sync::Arc;
+use crate::models::errors::RegistrationError;
 
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {
@@ -59,15 +60,7 @@ impl DataService {
     pub fn new(data_provider: Arc<dyn ProviderInterface>, token_repository: Arc<dyn TokenRepositoryInterface>, user_repository: Arc<dyn UserRepositoryInterface>, course_repository: Arc<dyn CourseRepositoryInterface>, grade_repository: Arc<dyn GradeRepositoryInterface>, deadline_repository: Arc<dyn DeadlineRepositoryInterface>) -> Self {
         Self { data_provider, token_repository, user_repository, course_repository, grade_repository, deadline_repository }
     }
-
-    pub async fn registaration(&self, token: &str) -> Result<(), Box<dyn Error>> {
-        let user = self.create_user(token).await?;
-        let courses = self.update_courses(token, &user).await?;
-        self.update_grades(token, &user, &courses).await?;
-        self.update_grades_overview(token, &courses).await?;
-        self.update_deadlines(token, &courses).await?;
-        Ok(())
-    }
+    
 }
 
 #[async_trait]
@@ -76,7 +69,10 @@ impl TokenServiceInterface for DataService {
         self.data_provider.valid_token(&token.token).await?;
         match self.token_repository.save(token).await {
             Ok(_) => Ok(()),
-            Err(_e) => Err("User already exist".into()),
+            Err(e) => match e.downcast_ref::<RegistrationError>() {
+                Some(RegistrationError::UserAlreadyExists) => Err(Box::new(RegistrationError::UserAlreadyExists)),
+                _ => Err(Box::new(RegistrationError::InternalServerError)),
+            },
         }
     }
 
@@ -86,6 +82,15 @@ impl TokenServiceInterface for DataService {
 
     async fn find_all_tokens(&self) -> Result<Vec<Token>, Box<dyn Error>> {
         self.token_repository.find_all_device_tokens().await
+    }
+
+    async fn fetch_and_save_data(&self, token: &str) -> Result<(), Box<dyn Error>> {
+        let user = self.create_user(token).await?;
+        let courses = self.update_courses(token, &user).await?;
+        self.update_grades(token, &user, &courses).await?;
+        self.update_grades_overview(token, &courses).await?;
+        self.update_deadlines(token, &courses).await?;
+        Ok(())
     }
 }
 

@@ -28,6 +28,7 @@ pub trait TokenServiceInterface: Send + Sync {
     async fn create_token(&self, token: &Token) -> Result<(), Box<dyn Error>>;
     async fn delete_one_user(&self, token: &str) -> Result<(), Box<dyn Error>>;
     async fn find_all_tokens(&self) -> Result<Vec<Token>, Box<dyn Error>>;
+    async fn fetch_and_save_data(&self, token: &str) -> Result<(), Box<dyn Error>>;
 }
 
 #[async_trait]
