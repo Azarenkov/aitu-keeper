@@ -1,6 +1,9 @@
+use std::env;
 use actix_web::{App, HttpServer};
 use std::error::Error;
 use std::sync::Arc;
+use std::time::Duration;
+use actix_web::web::Data;
 use fcm_rs::client::FcmClient;
 
 mod models;
@@ -24,44 +27,9 @@ use crate::services::notification_service::NotificationService;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    
-    let db = Arc::new(connect("main").await?.collection("users"));
-    let base_url = "https://moodle.astanait.edu.kz/webservice/rest/server.php?".to_string();
-    let moodle_client = Arc::new(MoodleClient::new(base_url));
-    
-    let data_repository = Arc::new(DataRepository::new(db.clone()));
-    let data_service = Arc::new(DataService::new(
-        moodle_client.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-    ));
-    
-    let fcm_client = FcmClient::new("service_account_key.json").await?;
-    let fcm = Arc::new(FirebaseMessagesClient::new(fcm_client));
-    
-    let notification_service = Arc::new(NotificationService::new(
-        fcm, 
-        moodle_client,
-        data_service.clone(),
-        data_service.clone(),
-        data_service.clone(),
-        data_service.clone(),
-        data_service.clone(),
-    ));
-    
-    tokio::spawn(async move{
-        loop {
-            if let Err(e) = notification_service.send_notifications().await {
-                eprintln!("{}", e);
-            }
-        }
-    });
 
-    let app_state = AppState::new(data_service);
-    
+    let app_state = setup().await?;
+
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
@@ -70,8 +38,54 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .configure(grade_routes)
             .configure(deadline_routes)
     })
-    .bind("0.0.0.0:8080")?
-    .run()
-    .await?;
+        .bind("0.0.0.0:8080")?
+        .run()
+        .await?;
     Ok(())
+}
+
+async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
+
+    let mongo_uri = env::var("MONGODB_URI").expect("You must set the MONGODB_URI environment var!");
+    let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
+    let format_url = env::var("FORMAT_URL").expect("You must set the BASE_URL environment var!");
+    
+    let moodle_client = Arc::new(MoodleClient::new(base_url, format_url));
+    let db = connect(&mongo_uri).await?.collection("users");
+
+    let data_repository = Arc::new(DataRepository::new(db));
+    let data_service = Arc::new(DataService::new(
+        moodle_client.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+    ));
+
+    let fcm_client = FcmClient::new("service_account_key.json").await?;
+    let fcm = Arc::new(FirebaseMessagesClient::new(fcm_client));
+
+    let notification_service = Arc::new(NotificationService::new(
+        fcm,
+        moodle_client,
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+    ));
+
+    tokio::spawn(async move {
+        loop {
+            if let Err(e) = notification_service.send_notifications().await {
+                eprintln!("{}", e);
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
+
+    let app_state = AppState::new(data_service);
+
+    Ok(app_state)
 }
