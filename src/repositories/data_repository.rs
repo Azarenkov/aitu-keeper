@@ -6,10 +6,9 @@ use crate::models::token::Token;
 use crate::models::user::User;
 use crate::services::data_service::{CourseRepositoryInterface, DeadlineRepositoryInterface, GradeRepositoryInterface, TokenRepositoryInterface, UserRepositoryInterface};
 use async_trait::async_trait;
-use futures_util::TryStreamExt;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
-use mongodb::{bson, Collection};
-use std::error::Error;
+use mongodb::{bson, Collection, Cursor};
+use anyhow::{Result, Error};
 
 pub struct DataRepository {
     collection: Collection<Document>
@@ -23,33 +22,25 @@ impl DataRepository {
 
 #[async_trait]
 impl TokenRepositoryInterface for DataRepository {
-    async fn save(&self, token: &Token) -> Result<(), Box<dyn Error>> {
+    async fn save(&self, token: &Token) -> Result<()> {
         let doc = doc! {"_id": &token.token };
         let existing_token = self.collection.find_one(doc.clone()).await?;
 
         if existing_token.is_some() {
-            return Err(Box::new(RegistrationError::UserAlreadyExists));
+            return Err(Error::new(RegistrationError::UserAlreadyExists));
         }
 
         self.collection.insert_one(doc).await?;
         Ok(())
     }
 
-    async fn find_all_device_tokens(&self) -> Result<Vec<Token>, Box<dyn Error>> {
-        let filter = doc! {"device_token": {"$exists": true}};
-        let mut cursor = self.collection.find(filter).await?;
-        let mut tokens_vec = Vec::new();
-
-        while let Some(doc) = cursor.try_next().await? {
-            if let (Some(token), Some(device_token)) = (doc.get_str("_id").ok(), doc.get_str("device_token").ok()) {
-                tokens_vec.push(Token::new(token.to_string(), Some(device_token.to_string())));
-            }
-        }
-
-        Ok(tokens_vec)
+    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>> {
+        let filter = doc! {"_id": {"$exists": true}};
+        let cursor = self.collection.find(filter).await?;
+        Ok(cursor)
     }
 
-    async fn delete(&self, token: &str) -> Result<(), Box<dyn Error>> {
+    async fn delete(&self, token: &str) -> Result<()> {
         self.collection.delete_one(doc! { "_id": token}).await?;
         Ok(())
     }
@@ -58,7 +49,7 @@ impl TokenRepositoryInterface for DataRepository {
 #[async_trait]
 impl UserRepositoryInterface for DataRepository {
 
-    async fn find_by_token(&self, token: &str) -> Result<User, Box<dyn Error>> {
+    async fn find_by_token(&self, token: &str) -> Result<User> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
         if let Some(doc) = doc {
             match doc.get_document("user").ok() {
@@ -66,14 +57,14 @@ impl UserRepositoryInterface for DataRepository {
                     let user: User = bson::from_document(doc.clone())?;
                     Ok(user)
                 },
-                None => Err("User is empty".into())
+                None => Err(Error::msg("User is empty"))
             }
         } else {
-            Err("User not found".into())
+            Err(Error::msg("User not found"))
         }
     }
 
-    async fn save(&self, user: &User, token: &str) -> Result<(), Box<dyn Error>> {
+    async fn save(&self, user: &User, token: &str) -> Result<()> {
         let doc = doc! {
             "$set": {"user": to_bson(user)? }
         };
@@ -85,7 +76,7 @@ impl UserRepositoryInterface for DataRepository {
 
 #[async_trait]
 impl CourseRepositoryInterface for DataRepository {
-    async fn save(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+    async fn save(&self, token: &str, courses: &[Course]) -> Result<()> {
         let courses_doc = to_bson(courses)?;
         self.collection.update_one(doc! {"_id": token}, doc! {
             "$set": {"courses": courses_doc}
@@ -93,7 +84,7 @@ impl CourseRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>> {
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Course>> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
 
         if let Some(doc) = doc {
@@ -102,17 +93,17 @@ impl CourseRepositoryInterface for DataRepository {
                 let courses = from_bson::<Vec<Course>>(bson)?;
                 Ok(courses)
             } else {
-                Err("The 'courses' field is missing".into())
+                Err(Error::msg("The 'courses' field is missing"))
             }
         } else {
-            Err("Courses not found.".into())
+            Err(Error::msg("Courses not found."))
         }
     }
 }
 
 #[async_trait]
 impl GradeRepositoryInterface for DataRepository {
-    async fn save(&self, token: &str, grades: &[Grade]) -> Result<(), Box<dyn Error>> {
+    async fn save(&self, token: &str, grades: &[Grade]) -> Result<()> {
         let grades_doc = to_bson(grades)?;
         self.collection.update_one(doc! {"_id": token}, doc! {
             "$set": {"grades": grades_doc}
@@ -120,7 +111,7 @@ impl GradeRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>> {
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Grade>> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
 
         if let Some(doc) = doc {
@@ -129,14 +120,14 @@ impl GradeRepositoryInterface for DataRepository {
                 let grades = from_bson::<Vec<Grade>>(bson)?;
                 Ok(grades)
             } else {
-                Err("The 'grades' field is missing".into())
+                Err(Error::msg("The 'grades' field is missing"))
             }
         } else {
-            Err("Grades not found.".into())
+            Err(Error::msg("Grades not found."))
         }
     }
 
-    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<(), Box<dyn Error>> {
+    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<()> {
         let grades_overview_doc = to_bson(&grades_overview.grades)?;
         self.collection.update_one(doc! {"_id": token}, doc! {
             "$set": {"grades_overview": grades_overview_doc}
@@ -144,7 +135,7 @@ impl GradeRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>, Box<dyn Error>> {
+    async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
 
         if let Some(doc) = doc {
@@ -153,10 +144,10 @@ impl GradeRepositoryInterface for DataRepository {
                 let grades_overview = from_bson::<Vec<GradeOverview>>(bson)?;
                 Ok(grades_overview)
             } else {
-                Err("The 'grades_overview' field is missing".into())
+                Err(Error::msg("The 'grades_overview' field is missing"))
             }
         } else {
-            Err("Grades_overview not found.".into())
+            Err(Error::msg("Grades_overview not found."))
         }
 
     }
@@ -164,7 +155,7 @@ impl GradeRepositoryInterface for DataRepository {
 
 #[async_trait]
 impl DeadlineRepositoryInterface for DataRepository {
-    async fn save(&self, token: &str, deadlines: &[Deadline]) -> Result<(), Box<dyn Error>> {
+    async fn save(&self, token: &str, deadlines: &[Deadline]) -> Result<()> {
         let deadlines_doc = to_bson(deadlines)?;
         self.collection.update_one(doc! {"_id": token}, doc! {
             "$set": {"deadlines": deadlines_doc}
@@ -172,7 +163,7 @@ impl DeadlineRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>> {
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Deadline>> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
         if let Some(doc) = doc {
             if let Some(Bson::Array(deadlines_array)) = doc.get("deadlines") {
@@ -180,11 +171,11 @@ impl DeadlineRepositoryInterface for DataRepository {
                 let deadlines = from_bson::<Vec<Deadline>>(bson)?;
                 Ok(deadlines)
             } else {
-                Err("The 'deadlines' field is missing".into())
+                Err(Error::msg("The 'deadlines' field is missing"))
             }
 
         } else {
-            Err("Deadlines not found.".into())
+            Err(Error::msg("Deadlines not found."))
         }
     }
 }

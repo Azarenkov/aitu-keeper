@@ -1,13 +1,16 @@
 use crate::models::course::{compare_courses, Course};
 use crate::models::deadline::{compare_deadlines, create_body_message_deadline, sort_deadlines};
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
+use crate::models::token::Token;
 use crate::models::user::{create_body_message_user, User};
 use crate::services::interfaces::{CourseServiceInterface, DeadlineServiceInterface, GradeServiceInterface, NotificationInterface, NotificationServiceInterface, ProviderInterface, TokenServiceInterface, UserServiceInterface};
+use anyhow::Result;
 use async_trait::async_trait;
-use std::error::Error;
+use futures_util::TryStreamExt;
 use std::sync::Arc;
+use tokio::task;
 
-
+#[derive(Clone)]
 pub struct NotificationService {
     notification_provider: Arc<dyn NotificationInterface>,
     data_provider: Arc<dyn ProviderInterface>,
@@ -26,40 +29,88 @@ impl NotificationService {
 
 #[async_trait]
 impl NotificationServiceInterface for NotificationService {
-    async fn send_notifications(&self) -> Result<(), Box<dyn Error>> {
+    async fn send_notifications(self: Arc<Self>) -> Result<()> {
+        let mut cursor = self.token_service.find_all_tokens().await?;
+        let batch_size = 50;
+        let mut batch = Vec::new();
 
-        let tokens_vec = self.token_service.find_all_tokens().await?;
-        for tokens in tokens_vec.iter() {
-            let token = &tokens.token;
-            if let Some(device_token) = &tokens.device_token {
-                
-                let user = self.send_user_info(token, device_token).await?;
-                let courses = self.send_course(token, device_token, &user).await?;
-                self.send_deadline(token, device_token, &courses).await?;
-                self.send_grade(token, device_token, &user, &courses).await?;
-                self.send_grade_overview(token, device_token, &courses).await?;
-                
-            } else { 
-                self.token_service.fetch_and_save_data(token).await?;
+        while let Some(doc) = cursor.try_next().await? {
+            if let Ok(token) = doc.get_str("_id") {
+                match doc.get_str("device_token") {
+                    Ok(device_token) => batch.push(Token::new(token.to_string(), Some(device_token.to_string()))),
+                    Err(_) =>  batch.push(Token::new(token.to_string(), None)),
+                };
+            } else {
+                continue
+            }
+
+            if batch.len() >= batch_size {
+                let self_clone = self.clone();
+                self_clone.process_batch(&batch).await?;
+                batch.clear()
             }
         }
+
+        if !batch.is_empty() {
+            self.process_batch(&batch).await?;
+        }
+
+        Ok(())
+    }
+    async fn process_batch(self: Arc<Self>, batch: &[Token]) -> Result<()> {
+
+        let mut handles = Vec::new();
+
+        for tokens in batch.iter() {
+            let self_clone = self.clone();
+            let tokens = tokens.clone();
+
+            let handle = task::spawn(async move {
+                let token = &tokens.token;
+
+                if let Some(device_token) = &tokens.device_token {
+                    match self_clone.send_user_info(token, device_token).await {
+                        Ok(user) => {
+                            if let Ok(courses) = self_clone.send_course(token, device_token, &user).await {
+                                let _ = self_clone.send_deadline(token, device_token, &courses).await;
+                                let _ = self_clone.send_grade(token, device_token, &user, &courses).await;
+                                let _ = self_clone.send_grade_overview(token, device_token, &courses).await;
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Error sending user info: {:?}", e);
+                        }
+                    }
+                }
+                if let Err(e) = self_clone.token_service.fetch_and_save_data(token).await {
+                    eprintln!("Error fetching and saving data: {:?}", e);
+                }
+            });
+
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            let _ = handle.await;
+        }
+
         Ok(())
     }
 
-    async fn send_user_info(&self, token: &str, device_token: &str) -> Result<User, Box<dyn Error>> {
+
+    async fn send_user_info(&self, token: &str, device_token: &str) -> Result<User> {
         let external_user = self.data_provider.get_user(token).await?;
         let user = self.user_service.get_user(token).await?;
         if !user.eq(&external_user) {
             let body = create_body_message_user(&external_user);
             let message = self.notification_provider.create_message(device_token, "New user info", &body);
-
+        
             self.notification_provider.send_notification(message).await?;
-            self.user_service.save_user(token, &external_user).await?;
         }
         Ok(external_user)
     }
 
-    async fn send_course(&self, token: &str, device_token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>> {
+    async fn send_course(&self, token: &str, device_token: &str, user: &User) -> Result<Vec<Course>> {
         let external_courses = self.data_provider.get_courses(token, user.userid).await?;
         let courses = self.course_service.get_courses(token).await?;
         let new_courses = compare_courses(&external_courses, &courses);
@@ -70,13 +121,11 @@ impl NotificationServiceInterface for NotificationService {
                 let message = self.notification_provider.create_message(device_token, "New course", &body);
                 self.notification_provider.send_notification(message).await?;
             }
-            self.course_service.save_courses(token, &external_courses).await?;
         }
         Ok(external_courses)
     }
 
-    async fn send_deadline(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
-        let mut new_deadlines_vec = Vec::new();
+    async fn send_deadline(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<()> {
         for course in courses {
             let deadlines = self.deadline_service.get_deadlines(token).await?;
             
@@ -87,9 +136,6 @@ impl NotificationServiceInterface for NotificationService {
             }
 
             let sorted_deadlines = sort_deadlines(&mut external_deadlines)?;
-            for sorted_deadline in sorted_deadlines.iter() {
-                new_deadlines_vec.push(sorted_deadline.clone());
-            }
             
             let new_deadlines = compare_deadlines(&sorted_deadlines, &deadlines);
             if !new_deadlines.is_empty() {
@@ -100,23 +146,16 @@ impl NotificationServiceInterface for NotificationService {
                 }
             }
         }
-        new_deadlines_vec.sort_by(|a, b| a.timeusermidnight.cmp(&b.timeusermidnight));
-        self.deadline_service.save_deadlines(token, &new_deadlines_vec).await?;
-
+        
         Ok(())
     }
 
-    async fn send_grade(&self, token: &str, device_token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>> {
-        let mut new_grades_vec = Vec::new();
+    async fn send_grade(&self, token: &str, device_token: &str, user: &User, courses: &[Course]) -> Result<()> {
         for course in courses {
             let mut external_grades = self.data_provider.get_grades_by_course_id(token, user.userid, course.id).await?.usergrades;
             
             for external_grade in external_grades.iter_mut() {
                 external_grade.coursename = Option::from(course.fullname.clone());
-            }
-            
-            for external_grade in external_grades.iter() {
-                new_grades_vec.push(external_grade.clone());
             }
             
             let grades = self.grade_service.get_grades(token).await?;
@@ -131,13 +170,12 @@ impl NotificationServiceInterface for NotificationService {
                 }
             }
         }
-        self.grade_service.save_grades(token, &new_grades_vec).await?;
 
         Ok(())
     }
 
 
-    async fn send_grade_overview(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+    async fn send_grade_overview(&self, token: &str, device_token: &str, courses: &[Course]) -> Result<()> {
         let mut external_grades_overview = self.data_provider.get_grades_overview(token).await?;
 
         for external_grade_overview in external_grades_overview.grades.iter_mut() {
@@ -160,7 +198,6 @@ impl NotificationServiceInterface for NotificationService {
                 let message = self.notification_provider.create_message(device_token, &title, &body);
                 self.notification_provider.send_notification(message).await?
             }
-            self.grade_service.save_grades_overview(token, &external_grades_overview).await?;
         }
 
         Ok(())

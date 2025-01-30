@@ -53,7 +53,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
 
     let mongo_uri = env::var("MONGODB_URI").expect("You must set the MONGODB_URI environment var!");
     let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
-    let format_url = env::var("FORMAT_URL").expect("You must set the BASE_URL environment var!");
+    let format_url = env::var("FORMAT_URL").expect("You must set the FORMAT_URL environment var!");
     
     let moodle_client = Arc::new(MoodleClient::new(base_url, format_url));
     let db = connect(&mongo_uri).await?.collection("users");
@@ -83,10 +83,10 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
 
     tokio::spawn(async move {
         loop {
-            if let Err(e) = notification_service.send_notifications().await {
+            if let Err(e) = notification_service.clone().send_notifications().await {
                 eprintln!("{}", e);
             }
-            tokio::time::sleep(Duration::from_secs(10)).await;
+            tokio::time::sleep(Duration::from_secs(2)).await;
         }
     });
 

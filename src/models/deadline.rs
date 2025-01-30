@@ -2,7 +2,7 @@ use chrono::Timelike;
 use chrono::{NaiveTime, Utc};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
+use anyhow::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Events {
@@ -17,14 +17,14 @@ pub struct Deadline {
     pub coursename: Option<String>,
 }
 
-pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>, Box<dyn Error>> {
+pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>> {
     let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(6 * 3600).unwrap());
     let current_unix_time = current_time.timestamp();
 
     let mut sorted_deadlines = Vec::new();
 
     for deadline in deadlines.iter_mut() {
-        if deadline.timeusermidnight - 86400 < current_unix_time {
+        if deadline.timeusermidnight + 86400 < current_unix_time {
             continue
         }
         let seconds_after_mid;
@@ -37,6 +37,8 @@ pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>, Box<d
         if deadline.timeusermidnight + seconds_after_mid >  current_unix_time {
             let time_description = extract_date_and_time(&deadline.formattedtime).unwrap_or_else(|| "No time".to_string());
             deadline.formattedtime = time_description;
+        } else {
+            continue
         }
         sorted_deadlines.push(deadline.clone())
     }
@@ -53,7 +55,7 @@ pub fn extract_time(date_str: &str) -> Option<String> {
     }
 }
 
-pub fn parse_time_to_seconds(time_str: &str) -> Result<i64, Box<dyn Error>> {
+pub fn parse_time_to_seconds(time_str: &str) -> Result<i64> {
     let format = "%H:%M";
     let native_time = NaiveTime::parse_from_str(time_str, format)?;
     let seconds = native_time.num_seconds_from_midnight() as i64;

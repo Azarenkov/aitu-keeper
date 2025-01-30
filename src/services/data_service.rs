@@ -10,41 +10,44 @@ use crate::services::interfaces::ProviderInterface;
 use crate::services::interfaces::TokenServiceInterface;
 use crate::services::interfaces::UserServiceInterface;
 use async_trait::async_trait;
-use std::error::Error;
 use std::sync::Arc;
+use mongodb::bson::Document;
+use mongodb::Cursor;
 use crate::models::errors::RegistrationError;
+use anyhow::Result;
+use anyhow::Error;
 
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {
-    async fn save(&self, token: &Token) -> Result<(), Box<dyn Error>>;
-    async fn find_all_device_tokens(&self) -> Result<Vec<Token>,Box<dyn Error>>;
-    async fn delete(&self, token: &str) -> Result<(), Box<dyn Error>>;
+    async fn save(&self, token: &Token) -> Result<()>;
+    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>>;
+    async fn delete(&self, token: &str) -> Result<()>;
 }
 
 #[async_trait]
 pub trait UserRepositoryInterface: Send + Sync {
-    async fn find_by_token(&self, token: &str) -> Result<User, Box<dyn Error>>;
-    async fn save(&self, user: &User, token: &str) -> Result<(), Box<dyn Error>>;
+    async fn find_by_token(&self, token: &str) -> Result<User>;
+    async fn save(&self, user: &User, token: &str) -> Result<()>;
 }
 
 #[async_trait]
 pub trait CourseRepositoryInterface: Send + Sync {
-    async fn save(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>>;
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>>;
+    async fn save(&self, token: &str, courses: &[Course]) -> Result<()>;
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Course>>;
 }
 
 #[async_trait]
 pub trait DeadlineRepositoryInterface: Send + Sync {
-    async fn save(&self, token: &str, deadlines: &[Deadline]) -> Result<(), Box<dyn Error>>;
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>>;
+    async fn save(&self, token: &str, deadlines: &[Deadline]) -> Result<()>;
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Deadline>>;
 }
 
 #[async_trait]
 pub trait GradeRepositoryInterface: Send + Sync {
-    async fn save(&self, token: &str, grades: &[Grade]) -> Result<(), Box<dyn Error>>;
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>>;
-    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<(), Box<dyn Error>>;    
-    async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>, Box<dyn Error>>;
+    async fn save(&self, token: &str, grades: &[Grade]) -> Result<()>;
+    async fn find_by_token(&self, token: &str) -> Result<Vec<Grade>>;
+    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<()>;    
+    async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>>;
 }
 
 pub struct DataService  {
@@ -65,26 +68,26 @@ impl DataService {
 
 #[async_trait]
 impl TokenServiceInterface for DataService {
-    async fn create_token(&self, token: &Token) -> Result<(), Box<dyn Error>> {
+    async fn create_token(&self, token: &Token) -> Result<()> {
         self.data_provider.valid_token(&token.token).await?;
         match self.token_repository.save(token).await {
             Ok(_) => Ok(()),
             Err(e) => match e.downcast_ref::<RegistrationError>() {
-                Some(RegistrationError::UserAlreadyExists) => Err(Box::new(RegistrationError::UserAlreadyExists)),
-                _ => Err(Box::new(RegistrationError::InternalServerError)),
+                Some(RegistrationError::UserAlreadyExists) => Err(Error::new(RegistrationError::UserAlreadyExists)),
+                _ => Err(Error::new(RegistrationError::InternalServerError)),
             },
         }
     }
 
-    async fn delete_one_user(&self, token: &str) -> Result<(), Box<dyn Error>> {
+    async fn delete_one_user(&self, token: &str) -> Result<()> {
         self.token_repository.delete(token).await
     }
 
-    async fn find_all_tokens(&self) -> Result<Vec<Token>, Box<dyn Error>> {
+    async fn find_all_tokens(&self) -> Result<Cursor<Document>> {
         self.token_repository.find_all_device_tokens().await
     }
 
-    async fn fetch_and_save_data(&self, token: &str) -> Result<(), Box<dyn Error>> {
+    async fn fetch_and_save_data(&self, token: &str) -> Result<()> {
         let user = self.create_user(token).await?;
         let courses = self.update_courses(token, &user).await?;
         self.update_grades(token, &user, &courses).await?;
@@ -96,38 +99,29 @@ impl TokenServiceInterface for DataService {
 
 #[async_trait]
 impl UserServiceInterface for DataService {
-    async fn create_user(&self, token: &str) -> Result<User, Box<dyn Error>> {
+    async fn create_user(&self, token: &str) -> Result<User> {
         match self.data_provider.get_user(token).await {
             Ok(user) => {
                 self.user_repository.save(&user, token).await?;
                 Ok(user)
             },
-            Err(_) => return Err("Invalid token".into()),
+            Err(_) => Err(Error::msg("Invalid token")),
         }
 
     }
 
-    async fn save_user(&self, token: &str, user: &User) -> Result<(), Box<dyn Error>> {
-        self.user_repository.save(user, token).await
-    }
-
-
-    async fn get_user(&self, token: &str) -> Result<User, Box<dyn Error>> {
+    async fn get_user(&self, token: &str) -> Result<User> {
         self.user_repository.find_by_token(token).await
     }
 }
 
 #[async_trait]
 impl CourseServiceInterface for DataService {
-    async fn get_courses(&self, token: &str) -> Result<Vec<Course>, Box<dyn Error>> {
+    async fn get_courses(&self, token: &str) -> Result<Vec<Course>> {
         self.course_repository.find_by_token(token).await
     }
 
-    async fn save_courses(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
-        self.course_repository.save(token, courses).await
-    }
-
-    async fn update_courses(&self, token: &str, user: &User) -> Result<Vec<Course>, Box<dyn Error>> {
+    async fn update_courses(&self, token: &str, user: &User) -> Result<Vec<Course>> {
         let courses = self.data_provider.get_courses(token, user.userid).await?;
         self.course_repository.save(token, &courses).await?;
         Ok(courses)
@@ -136,15 +130,11 @@ impl CourseServiceInterface for DataService {
 
 #[async_trait]
 impl GradeServiceInterface for DataService {
-    async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, Box<dyn Error>> {
+    async fn get_grades(&self, token: &str) -> Result<Vec<Grade>> {
         self.grade_repository.find_by_token(token).await
     }
 
-    async fn save_grades(&self, token: &str, grades: &[Grade]) -> Result<(), Box<dyn Error>> {
-        self.grade_repository.save(token, grades).await
-    }
-
-    async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+    async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> Result<()> {
         let mut grades = Vec::new();
 
         for course in courses {
@@ -159,15 +149,11 @@ impl GradeServiceInterface for DataService {
         Ok(())
     }
 
-    async fn get_grades_overview(&self, token: &str) -> Result<Vec<GradeOverview>, Box<dyn Error>> {
+    async fn get_grades_overview(&self, token: &str) -> Result<Vec<GradeOverview>> {
         self.grade_repository.find_grades_overview_by_token(token).await
     }
 
-    async fn save_grades_overview(&self, token: &str, grades_overview: &GradesOverview) -> Result<(), Box<dyn Error>> {
-        self.grade_repository.save_grades_overview(token, grades_overview).await
-    }
-
-    async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+    async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> Result<()> {
         let mut grades_overview = self.data_provider.get_grades_overview(token).await?;
 
         for grade_overview in grades_overview.grades.iter_mut() {
@@ -186,15 +172,11 @@ impl GradeServiceInterface for DataService {
 
 #[async_trait]
 impl DeadlineServiceInterface for DataService {
-    async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, Box<dyn Error>> {
+    async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>> {
         self.deadline_repository.find_by_token(token).await
     }
 
-    async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<(), Box<dyn Error>> {
-        self.deadline_repository.save(token, deadlines).await
-    }
-
-    async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), Box<dyn Error>> {
+    async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<()> {
         let mut deadlines = Vec::new();
 
         for course in courses {
