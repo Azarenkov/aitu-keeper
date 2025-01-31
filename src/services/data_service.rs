@@ -13,7 +13,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 use mongodb::bson::Document;
 use mongodb::Cursor;
-use crate::models::errors::RegistrationError;
+use crate::models::errors::ApiError;
 use anyhow::Result;
 use anyhow::Error;
 
@@ -71,14 +71,14 @@ impl TokenServiceInterface for DataService {
     async fn create_token(&self, token: &Token) -> Result<()> {
         match self.data_provider.valid_token(&token.token).await {
             Ok(_) => {},
-            Err(_) => return Err(Error::new(RegistrationError::InvalidToken)),
+            Err(_) => return Err(Error::new(ApiError::InvalidToken)),
         };
         
         match self.token_repository.save(token).await {
             Ok(_) => Ok(()),
-            Err(e) => match e.downcast_ref::<RegistrationError>() {
-                Some(RegistrationError::UserAlreadyExists) => Err(Error::new(RegistrationError::UserAlreadyExists)),
-                _ => Err(Error::new(RegistrationError::InternalServerError)),
+            Err(e) => match e.downcast_ref::<ApiError>() {
+                Some(ApiError::UserAlreadyExists) => Err(Error::new(ApiError::UserAlreadyExists)),
+                _ => Err(Error::new(ApiError::InternalServerError)),
             },
         }
     }
@@ -109,7 +109,7 @@ impl UserServiceInterface for DataService {
                 self.user_repository.save(&user, token).await?;
                 Ok(user)
             },
-            Err(_) => Err(Error::new(RegistrationError::InvalidToken)),
+            Err(_) => Err(Error::new(ApiError::InvalidToken)),
         }
 
     }

@@ -1,10 +1,9 @@
 use crate::controllers::shared::app_state::AppState;
+use crate::controllers::shared::handler_errors::handle_any_error;
 use crate::models::token::Token;
 use crate::services::interfaces::TokenServiceInterface;
 use crate::services::interfaces::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
-use anyhow::Error;
-use crate::models::errors::RegistrationError;
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -13,14 +12,6 @@ pub fn user_routes(cfg: &mut web::ServiceConfig) {
             .service(get_user)
             .service(delete_user)
     );
-}
-
-fn handle_registration_error(e: &Error) -> HttpResponse {
-    match e.downcast_ref::<RegistrationError>() {
-        Some(RegistrationError::UserAlreadyExists) => HttpResponse::Accepted().json(RegistrationError::UserAlreadyExists.to_string()),
-        Some(RegistrationError::InvalidToken) => HttpResponse::BadRequest().json(RegistrationError::InvalidToken.to_string()),
-        _ => HttpResponse::InternalServerError().json(RegistrationError::InternalServerError.to_string()),
-    }
 }
 
 #[post("/create_user")]
@@ -35,7 +26,7 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
             });
             HttpResponse::Ok().json("User was created")
         },
-        Err(e) => handle_registration_error(&e),
+        Err(e) => handle_any_error(&e),
     }
 
 }
@@ -44,7 +35,7 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
 async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
     match app_state.data_service.get_user(&token.into_inner()).await {
         Ok(user) => HttpResponse::Ok().json(user),
-        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+        Err(e) => handle_any_error(&e),
     }
 }
 
@@ -52,7 +43,7 @@ async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> H
 async fn delete_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
     match app_state.data_service.delete_one_user(&token).await {
         Ok(_) => HttpResponse::Ok().json("User was deleted"),
-        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+        Err(e) => handle_any_error(&e),
     }
 }
 

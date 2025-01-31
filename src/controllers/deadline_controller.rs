@@ -1,6 +1,7 @@
 use crate::controllers::shared::app_state::AppState;
-use actix_web::{get, web, HttpResponse};
+use crate::controllers::shared::handler_errors::handle_any_error;
 use crate::services::interfaces::DeadlineServiceInterface;
+use actix_web::{get, web, HttpResponse};
 
 pub fn deadline_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -13,6 +14,6 @@ pub fn deadline_routes(cfg: &mut web::ServiceConfig) {
 async fn get_deadlines(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
     match app_state.data_service.get_deadlines(&token.into_inner()).await {
         Ok(deadlines) => HttpResponse::Ok().json(deadlines),
-        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+        Err(e) => handle_any_error(&e),
     }
 }

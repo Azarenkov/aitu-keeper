@@ -1,6 +1,6 @@
 use crate::models::course::Course;
 use crate::models::deadline::Deadline;
-use crate::models::errors::RegistrationError;
+use crate::models::errors::ApiError;
 use crate::models::grade::{Grade, GradeOverview, GradesOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
@@ -28,7 +28,7 @@ impl TokenRepositoryInterface for DataRepository {
         let existing_token = self.collection.find_one(doc.clone()).await?;
 
         if existing_token.is_some() {
-            return Err(Error::new(RegistrationError::UserAlreadyExists));
+            return Err(Error::new(ApiError::UserAlreadyExists));
         }
 
         self.collection.insert_one(doc).await?;
@@ -48,7 +48,15 @@ impl TokenRepositoryInterface for DataRepository {
     }
 
     async fn delete(&self, token: &str) -> Result<()> {
-        self.collection.delete_one(doc! { "_id": token}).await?;
+        
+        let doc = doc! { "_id": token};
+
+        let expected_token = self.collection.find_one(doc.clone()).await?;
+        if expected_token.is_none() {
+            return Err(Error::new(ApiError::UserAlreadyDeleted));
+        }
+        
+        self.collection.delete_one(doc).await?;
         Ok(())
     }
 }
@@ -64,10 +72,10 @@ impl UserRepositoryInterface for DataRepository {
                     let user: User = bson::from_document(doc.clone())?;
                     Ok(user)
                 },
-                None => Err(Error::new(RegistrationError::UserDataIsEmpty))
+                None => Err(Error::new(ApiError::UserDataIsEmpty))
             }
         } else {
-            Err(Error::new(RegistrationError::UserNotFound))
+            Err(Error::new(ApiError::UserNotFound))
         }
     }
 
@@ -100,10 +108,10 @@ impl CourseRepositoryInterface for DataRepository {
                 let courses = from_bson::<Vec<Course>>(bson)?;
                 Ok(courses)
             } else {
-                Err(Error::new(RegistrationError::CoursesAreEmpty))
+                Err(Error::new(ApiError::CoursesAreEmpty))
             }
         } else {
-            Err(Error::new(RegistrationError::CoursesNotFound))
+            Err(Error::new(ApiError::CoursesNotFound))
         }
     }
 }
@@ -127,10 +135,10 @@ impl GradeRepositoryInterface for DataRepository {
                 let grades = from_bson::<Vec<Grade>>(bson)?;
                 Ok(grades)
             } else {
-                Err(Error::new(RegistrationError::GradesAreEmpty))
+                Err(Error::new(ApiError::GradesAreEmpty))
             }
         } else {
-            Err(Error::new(RegistrationError::GradesNotFound))
+            Err(Error::new(ApiError::GradesNotFound))
         }
     }
 
@@ -151,10 +159,10 @@ impl GradeRepositoryInterface for DataRepository {
                 let grades_overview = from_bson::<Vec<GradeOverview>>(bson)?;
                 Ok(grades_overview)
             } else {
-                Err(Error::new(RegistrationError::GradesOverviewIsEmpty))
+                Err(Error::new(ApiError::GradesAreEmpty))
             }
         } else {
-            Err(Error::new(RegistrationError::GradesOverviewNotFound))
+            Err(Error::new(ApiError::GradesNotFound))
         }
 
     }
@@ -178,11 +186,11 @@ impl DeadlineRepositoryInterface for DataRepository {
                 let deadlines = from_bson::<Vec<Deadline>>(bson)?;
                 Ok(deadlines)
             } else {
-                Err(Error::new(RegistrationError::DeadlinesAreEmpty))
+                Err(Error::new(ApiError::DeadlinesAreEmpty))
             }
 
         } else {
-            Err(Error::new(RegistrationError::DeadlinesNotFound))
+            Err(Error::new(ApiError::DeadlinesNotFound))
         }
     }
 }
