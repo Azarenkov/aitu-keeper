@@ -10,7 +10,7 @@ use futures_util::TryStreamExt;
 use std::sync::Arc;
 use tokio::task;
 
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct NotificationService {
     notification_provider: Arc<dyn NotificationInterface>,
     data_provider: Arc<dyn ProviderInterface>,
@@ -159,8 +159,8 @@ impl NotificationServiceInterface for NotificationService {
                 external_grade.coursename = Option::from(course.fullname.clone());
             }
             
-            let grades = self.grade_service.get_grades(token).await?;
-            let new_grades = compare_grades(&external_grades, &grades);
+            let mut grades = self.grade_service.get_grades(token).await?;
+            let new_grades = compare_grades(&mut external_grades, &mut grades);
             
             if !new_grades.is_empty() {
                 for new_grade in new_grades {

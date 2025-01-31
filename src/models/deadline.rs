@@ -9,7 +9,7 @@ pub struct Events {
     pub events: Vec<Deadline>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Deadline {
     pub name: String,
     pub timeusermidnight: i64,

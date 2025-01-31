@@ -5,7 +5,7 @@ pub struct UserGrades {
     pub usergrades: Vec<Grade>
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Grade {
     pub coursename: Option<String>,
     courseid: i64,
@@ -36,18 +36,28 @@ pub struct GradeOverview {
     rawgrade: String,
 }
 
-pub fn compare_grades<'a>(external_grades: &'a [Grade], grades: &'a [Grade]) -> Vec<(&'a GradeItems, &'a GradeItems)> {
+pub fn compare_grades<'a>(external_grades: &'a mut [Grade], grades: &'a mut [Grade]) -> Vec<(&'a GradeItems, &'a GradeItems)> {
+    external_grades.sort_by_key(|g| g.courseid);
+    grades.sort_by_key(|g| g.courseid);
+
+    for g in grades.iter_mut() {
+        g.gradeitems.sort_by_key(|item| item.id);
+    }
+    for eg in external_grades.iter_mut() {
+        eg.gradeitems.sort_by_key(|item| item.id);
+    }
+
     let mut new_and_old_grades = Vec::new();
 
     for external_grade in external_grades {
-        for grade in grades {
-            if external_grade.courseid != grade.courseid {
-                continue
-            }
-            for external_gradeitem in external_grade.gradeitems.iter() {
-                for gradeitem in grade.gradeitems.iter() {
-                    if external_gradeitem.id == gradeitem.id && external_gradeitem.percentageformatted != gradeitem.percentageformatted {
-                        new_and_old_grades.push((external_gradeitem, gradeitem));
+        if let Ok(grade_index) = grades.binary_search_by_key(&external_grade.courseid, |g| g.courseid) {
+            let grade = &grades[grade_index];
+
+            for external_item in &external_grade.gradeitems {
+                if let Ok(item_index) = grade.gradeitems.binary_search_by_key(&external_item.id, |gi| gi.id) {
+                    let found_item = &grade.gradeitems[item_index];
+                    if external_item.percentageformatted != found_item.percentageformatted {
+                        new_and_old_grades.push((external_item, found_item));
                     }
                 }
             }
