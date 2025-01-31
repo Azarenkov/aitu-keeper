@@ -30,7 +30,7 @@ pub trait NotificationInterface: Send + Sync {
 pub trait TokenServiceInterface: Send + Sync {
     async fn create_token(&self, token: &Token) -> Result<()>;
     async fn delete_one_user(&self, token: &str) -> Result<()>;
-    async fn find_all_tokens(&self) -> Result<Cursor<Document>>;
+    async fn find_all_tokens(&self, skip: u64, limit: i64) -> Result<Cursor<Document>>;
     async fn fetch_and_save_data(&self, token: &str) -> Result<()>;
 }
 

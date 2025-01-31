@@ -7,7 +7,9 @@ pub struct User {
     pub userid: i64,
 }
 
-
-pub fn create_body_message_user(user: &User) -> String {
-    format!("Email: {}\nFullname: {}\nUser_id: {}", user.username, user.fullname, user.userid)
+impl User {
+    pub fn create_body_message_user(&self) -> String {
+        format!("Email: {}\nFullname: {}\nUser_id: {}", self.username, self.fullname, self.userid)
+    }
 }
+

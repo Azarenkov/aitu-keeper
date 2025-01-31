@@ -17,6 +17,15 @@ pub struct Deadline {
     pub coursename: Option<String>,
 }
 
+impl Deadline {
+    pub fn create_body_message_deadline(&self) -> String {
+        format!("Course: {}\nTask: {}\nUntil {}",
+                self.coursename.clone().unwrap_or( "-".to_string()),
+                self.name,
+                self.formattedtime)
+    }
+}
+
 pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>> {
     let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(6 * 3600).unwrap());
     let current_unix_time = current_time.timestamp();
@@ -34,7 +43,9 @@ pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>> {
             seconds_after_mid = 0;
         }
 
-        if deadline.timeusermidnight + seconds_after_mid >  current_unix_time {
+        deadline.timeusermidnight += seconds_after_mid;
+
+        if deadline.timeusermidnight + 2 >  current_unix_time {
             let time_description = extract_date_and_time(&deadline.formattedtime).unwrap_or_else(|| "No time".to_string());
             deadline.formattedtime = time_description;
         } else {
@@ -90,9 +101,3 @@ pub fn compare_deadlines<'a>(external_deadlines: &'a [Deadline], deadlines: &[De
     new_deadlines
 }
 
-pub fn create_body_message_deadline(deadline: &Deadline) -> String {
-    format!("Course: {}\nTask: {}\nUntil {}",
-            deadline.coursename.clone().unwrap_or( "-".to_string()),
-            deadline.name,
-            deadline.formattedtime)
-}

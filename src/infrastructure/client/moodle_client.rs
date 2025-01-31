@@ -20,7 +20,7 @@ impl MoodleClient {
 
 #[async_trait]
 impl ProviderInterface for MoodleClient {
-    async fn get_user(&self, token: &str) -> Result<User, reqwest::Error> {
+    async fn get_user(&self, token: &str) -> Result<User, Error> {
         let url = format!("{}wstoken={}&wsfunction=core_webservice_get_site_info{}", self.base_url, token, self.format);
         let response = self.client.get(&url).send().await?;
         response.json::<User>().await

@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::{bson, Collection, Cursor};
 use anyhow::{Result, Error};
+use mongodb::options::FindOptions;
 
 pub struct DataRepository {
     collection: Collection<Document>
@@ -34,9 +35,15 @@ impl TokenRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>> {
+    async fn find_all_device_tokens(&self, skip: u64, limit: i64) -> Result<Cursor<Document>> {
         let filter = doc! {"_id": {"$exists": true}};
-        let cursor = self.collection.find(filter).await?;
+        let find_options = FindOptions::builder()
+            .sort(doc! { "_id": 1 }) // Sort by _id in ascending order
+            .skip(skip)
+            .limit(limit)
+            .build();
+
+        let cursor = self.collection.find(filter).with_options(find_options).await?;
         Ok(cursor)
     }
 
@@ -57,10 +64,10 @@ impl UserRepositoryInterface for DataRepository {
                     let user: User = bson::from_document(doc.clone())?;
                     Ok(user)
                 },
-                None => Err(Error::msg("User is empty"))
+                None => Err(Error::new(RegistrationError::UserDataIsEmpty))
             }
         } else {
-            Err(Error::msg("User not found"))
+            Err(Error::new(RegistrationError::UserNotFound))
         }
     }
 
@@ -93,10 +100,10 @@ impl CourseRepositoryInterface for DataRepository {
                 let courses = from_bson::<Vec<Course>>(bson)?;
                 Ok(courses)
             } else {
-                Err(Error::msg("The 'courses' field is missing"))
+                Err(Error::new(RegistrationError::CoursesAreEmpty))
             }
         } else {
-            Err(Error::msg("Courses not found."))
+            Err(Error::new(RegistrationError::CoursesNotFound))
         }
     }
 }
@@ -120,10 +127,10 @@ impl GradeRepositoryInterface for DataRepository {
                 let grades = from_bson::<Vec<Grade>>(bson)?;
                 Ok(grades)
             } else {
-                Err(Error::msg("The 'grades' field is missing"))
+                Err(Error::new(RegistrationError::GradesAreEmpty))
             }
         } else {
-            Err(Error::msg("Grades not found."))
+            Err(Error::new(RegistrationError::GradesNotFound))
         }
     }
 
@@ -144,10 +151,10 @@ impl GradeRepositoryInterface for DataRepository {
                 let grades_overview = from_bson::<Vec<GradeOverview>>(bson)?;
                 Ok(grades_overview)
             } else {
-                Err(Error::msg("The 'grades_overview' field is missing"))
+                Err(Error::new(RegistrationError::GradesOverviewIsEmpty))
             }
         } else {
-            Err(Error::msg("Grades_overview not found."))
+            Err(Error::new(RegistrationError::GradesOverviewNotFound))
         }
 
     }
@@ -171,11 +178,11 @@ impl DeadlineRepositoryInterface for DataRepository {
                 let deadlines = from_bson::<Vec<Deadline>>(bson)?;
                 Ok(deadlines)
             } else {
-                Err(Error::msg("The 'deadlines' field is missing"))
+                Err(Error::new(RegistrationError::DeadlinesAreEmpty))
             }
 
         } else {
-            Err(Error::msg("Deadlines not found."))
+            Err(Error::new(RegistrationError::DeadlinesNotFound))
         }
     }
 }

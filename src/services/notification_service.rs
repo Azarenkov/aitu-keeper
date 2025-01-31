@@ -1,8 +1,8 @@
 use crate::models::course::{compare_courses, Course};
-use crate::models::deadline::{compare_deadlines, create_body_message_deadline, sort_deadlines};
+use crate::models::deadline::{compare_deadlines, sort_deadlines};
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
 use crate::models::token::Token;
-use crate::models::user::{create_body_message_user, User};
+use crate::models::user::User;
 use crate::services::interfaces::{CourseServiceInterface, DeadlineServiceInterface, GradeServiceInterface, NotificationInterface, NotificationServiceInterface, ProviderInterface, TokenServiceInterface, UserServiceInterface};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -30,29 +30,30 @@ impl NotificationService {
 #[async_trait]
 impl NotificationServiceInterface for NotificationService {
     async fn send_notifications(self: Arc<Self>) -> Result<()> {
-        let mut cursor = self.token_service.find_all_tokens().await?;
         let batch_size = 50;
-        let mut batch = Vec::new();
+        let mut skip_count = 0;
 
-        while let Some(doc) = cursor.try_next().await? {
-            if let Ok(token) = doc.get_str("_id") {
-                match doc.get_str("device_token") {
-                    Ok(device_token) => batch.push(Token::new(token.to_string(), Some(device_token.to_string()))),
-                    Err(_) =>  batch.push(Token::new(token.to_string(), None)),
-                };
-            } else {
-                continue
+        loop {
+            let mut cursor = self.token_service.find_all_tokens(skip_count, batch_size).await?;
+            let mut batch = Vec::new();
+
+            while let Some(doc) = cursor.try_next().await? {
+                if let Ok(token) = doc.get_str("_id") {
+                    match doc.get_str("device_token") {
+                        Ok(device_token) => batch.push(Token::new(token.to_string(), Some(device_token.to_string()))),
+                        Err(_) =>  batch.push(Token::new(token.to_string(), None)),
+                    };
+                } else {
+                    continue
+                }
             }
 
-            if batch.len() >= batch_size {
-                let self_clone = self.clone();
-                self_clone.process_batch(&batch).await?;
-                batch.clear()
+            if batch.is_empty() {
+                break; 
             }
-        }
 
-        if !batch.is_empty() {
-            self.process_batch(&batch).await?;
+            self.clone().process_batch(&batch).await?;
+            skip_count += batch_size as u64; 
         }
 
         Ok(())
@@ -102,7 +103,7 @@ impl NotificationServiceInterface for NotificationService {
         let external_user = self.data_provider.get_user(token).await?;
         let user = self.user_service.get_user(token).await?;
         if !user.eq(&external_user) {
-            let body = create_body_message_user(&external_user);
+            let body = external_user.create_body_message_user();
             let message = self.notification_provider.create_message(device_token, "New user info", &body);
         
             self.notification_provider.send_notification(message).await?;
@@ -140,7 +141,7 @@ impl NotificationServiceInterface for NotificationService {
             let new_deadlines = compare_deadlines(&sorted_deadlines, &deadlines);
             if !new_deadlines.is_empty() {
                 for new_deadline in new_deadlines {
-                    let body = create_body_message_deadline(new_deadline);
+                    let body = new_deadline.create_body_message_deadline();
                     let message = self.notification_provider.create_message(device_token, "New deadline", &body);
                     self.notification_provider.send_notification(message).await?
                 }

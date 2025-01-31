@@ -3,6 +3,7 @@ use crate::models::token::Token;
 use crate::services::interfaces::TokenServiceInterface;
 use crate::services::interfaces::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
+use anyhow::Error;
 use crate::models::errors::RegistrationError;
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
@@ -14,6 +15,14 @@ pub fn user_routes(cfg: &mut web::ServiceConfig) {
     );
 }
 
+fn handle_registration_error(e: &Error) -> HttpResponse {
+    match e.downcast_ref::<RegistrationError>() {
+        Some(RegistrationError::UserAlreadyExists) => HttpResponse::Accepted().json(RegistrationError::UserAlreadyExists.to_string()),
+        Some(RegistrationError::InvalidToken) => HttpResponse::BadRequest().json(RegistrationError::InvalidToken.to_string()),
+        _ => HttpResponse::InternalServerError().json(RegistrationError::InternalServerError.to_string()),
+    }
+}
+
 #[post("/create_user")]
 async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) -> HttpResponse {
     
@@ -21,16 +30,12 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
         Ok(_) => {
             tokio::task::spawn(async move {
                 if let Err(e) = app_state.data_service.fetch_and_save_data(&token.token).await {
-                    eprintln!("Registration error {}", e);
+                    eprintln!("Fetch_and_save_data error in controller {}", e);
                 };
             });
             HttpResponse::Ok().json("User was created")
         },
-        Err(e) => match e.downcast_ref::<RegistrationError>() {
-            Some(RegistrationError::UserAlreadyExists) => HttpResponse::Accepted().json(RegistrationError::UserAlreadyExists.to_string()),
-            _ => HttpResponse::InternalServerError().json(RegistrationError::InternalServerError.to_string()),
-        },
-      
+        Err(e) => handle_registration_error(&e),
     }
 
 }

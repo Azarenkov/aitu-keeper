@@ -20,7 +20,7 @@ use anyhow::Error;
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {
     async fn save(&self, token: &Token) -> Result<()>;
-    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>>;
+    async fn find_all_device_tokens(&self, skip: u64, limit: i64) -> Result<Cursor<Document>>;
     async fn delete(&self, token: &str) -> Result<()>;
 }
 
@@ -69,7 +69,11 @@ impl DataService {
 #[async_trait]
 impl TokenServiceInterface for DataService {
     async fn create_token(&self, token: &Token) -> Result<()> {
-        self.data_provider.valid_token(&token.token).await?;
+        match self.data_provider.valid_token(&token.token).await {
+            Ok(_) => {},
+            Err(_) => return Err(Error::new(RegistrationError::InvalidToken)),
+        };
+        
         match self.token_repository.save(token).await {
             Ok(_) => Ok(()),
             Err(e) => match e.downcast_ref::<RegistrationError>() {
@@ -83,8 +87,8 @@ impl TokenServiceInterface for DataService {
         self.token_repository.delete(token).await
     }
 
-    async fn find_all_tokens(&self) -> Result<Cursor<Document>> {
-        self.token_repository.find_all_device_tokens().await
+    async fn find_all_tokens(&self, skip: u64, limit: i64) -> Result<Cursor<Document>> {
+        self.token_repository.find_all_device_tokens(skip, limit).await
     }
 
     async fn fetch_and_save_data(&self, token: &str) -> Result<()> {
@@ -105,7 +109,7 @@ impl UserServiceInterface for DataService {
                 self.user_repository.save(&user, token).await?;
                 Ok(user)
             },
-            Err(_) => Err(Error::msg("Invalid token")),
+            Err(_) => Err(Error::new(RegistrationError::InvalidToken)),
         }
 
     }
