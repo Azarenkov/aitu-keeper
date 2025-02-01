@@ -19,12 +19,10 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
     
     match app_state.data_service.create_token(&token).await {
         Ok(_) => {
-            tokio::task::spawn(async move {
-                if let Err(e) = app_state.data_service.fetch_and_save_data(&token.token).await {
-                    eprintln!("Fetch_and_save_data error in controller {}", e);
-                };
-            });
-            HttpResponse::Ok().json("User was created")
+            match app_state.data_service.fetch_and_save_data(&token.token).await {
+                Ok(_) => HttpResponse::Ok().json("User was created"),
+                Err(e) => handle_any_error(&e),
+            }             
         },
         Err(e) => handle_any_error(&e),
     }
