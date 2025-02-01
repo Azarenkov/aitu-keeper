@@ -24,7 +24,8 @@ impl DataRepository {
 #[async_trait]
 impl TokenRepositoryInterface for DataRepository {
     async fn save(&self, token: &Token) -> Result<()> {
-        let doc = doc! {"_id": &token.token };
+  
+        let doc = doc! {"_id": &token.token, "device_token": &token.device_token };
         let existing_token = self.collection.find_one(doc.clone()).await?;
 
         if existing_token.is_some() {
