@@ -5,11 +5,10 @@ use crate::models::grade::{Grade, GradeOverview, GradesOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
 use crate::services::data_service::{CourseRepositoryInterface, DeadlineRepositoryInterface, GradeRepositoryInterface, TokenRepositoryInterface, UserRepositoryInterface};
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::{bson, Collection, Cursor};
-use anyhow::{Result, Error};
-use mongodb::options::FindOptions;
 
 pub struct DataRepository {
     collection: Collection<Document>
@@ -26,7 +25,7 @@ impl TokenRepositoryInterface for DataRepository {
     async fn save(&self, token: &Token) -> Result<()> {
   
         let doc = doc! {"_id": &token.token, "device_token": &token.device_token };
-        let existing_token = self.collection.find_one(doc.clone()).await?;
+        let existing_token = self.collection.find_one(doc! {"_id": &token.token}).await?;
 
         if existing_token.is_some() {
             return Err(Error::new(ApiError::UserAlreadyExists));
@@ -36,15 +35,10 @@ impl TokenRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_all_device_tokens(&self, skip: u64, limit: i64) -> Result<Cursor<Document>> {
+    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>> {
         let filter = doc! {"_id": {"$exists": true}};
-        let find_options = FindOptions::builder()
-            .sort(doc! { "_id": 1 }) // Sort by _id in ascending order
-            .skip(skip)
-            .limit(limit)
-            .build();
-
-        let cursor = self.collection.find(filter).with_options(find_options).await?;
+     
+        let cursor = self.collection.find(filter).batch_size(10).no_cursor_timeout(true).await?;
         Ok(cursor)
     }
 

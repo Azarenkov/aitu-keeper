@@ -4,7 +4,7 @@ use crate::models::user::User;
 use async_trait::async_trait;
 use reqwest::{Client, Error};
 use crate::models::deadline::Events;
-use crate::services::interfaces::ProviderInterface;
+use crate::services::provider_interfaces::DataProviderInterface;
 
 pub struct MoodleClient {
     client: Client,
@@ -19,7 +19,7 @@ impl MoodleClient {
 }
 
 #[async_trait]
-impl ProviderInterface for MoodleClient {
+impl DataProviderInterface for MoodleClient {
     async fn get_user(&self, token: &str) -> Result<User, Error> {
         let url = format!("{}wstoken={}&wsfunction=core_webservice_get_site_info{}", self.base_url, token, self.format);
         let response = self.client.get(&url).send().await?;

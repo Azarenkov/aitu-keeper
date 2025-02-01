@@ -3,17 +3,20 @@ use crate::models::deadline::{compare_deadlines, sort_deadlines};
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
 use crate::models::token::Token;
 use crate::models::user::User;
-use crate::services::interfaces::{CourseServiceInterface, DeadlineServiceInterface, GradeServiceInterface, NotificationInterface, NotificationServiceInterface, ProviderInterface, TokenServiceInterface, UserServiceInterface};
+use crate::services::data_service_interfaces::{CourseServiceInterface, DeadlineServiceInterface, GradeServiceInterface, TokenServiceInterface, UserServiceInterface};
 use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
+use derive_builder::Builder;
 use tokio::task;
+use crate::services::provider_interfaces::{NotificationProviderInterface, DataProviderInterface};
+use crate::services::notification_service_interfaces::NotificationServiceInterface;
 
-// #[derive(Clone)]
+#[derive(Builder)]
 pub struct NotificationService {
-    notification_provider: Arc<dyn NotificationInterface>,
-    data_provider: Arc<dyn ProviderInterface>,
+    notification_provider: Arc<dyn NotificationProviderInterface>,
+    data_provider: Arc<dyn DataProviderInterface>,
     token_service: Arc<dyn TokenServiceInterface>,
     user_service: Arc<dyn UserServiceInterface>,
     course_service: Arc<dyn CourseServiceInterface>,
@@ -21,41 +24,27 @@ pub struct NotificationService {
     deadline_service: Arc<dyn DeadlineServiceInterface>,
 }
 
-impl NotificationService {
-    pub fn new(notification_provider: Arc<dyn NotificationInterface>, data_provider: Arc<dyn ProviderInterface>, token_service: Arc<dyn TokenServiceInterface>, user_service: Arc<dyn UserServiceInterface>, course_service: Arc<dyn CourseServiceInterface>, grade_service: Arc<dyn GradeServiceInterface>, deadline_service: Arc<dyn DeadlineServiceInterface>) -> Self {
-        Self { notification_provider, data_provider, token_service, user_service, course_service, grade_service, deadline_service }
-    }
-}
-
 #[async_trait]
 impl NotificationServiceInterface for NotificationService {
     async fn send_notifications(self: Arc<Self>) -> Result<()> {
-        let batch_size = 50;
-        let mut skip_count = 0;
 
-        loop {
-            let mut cursor = self.token_service.find_all_tokens(skip_count, batch_size).await?;
-            let mut batch = Vec::new();
+        let mut batch = Vec::new();
 
-            while let Some(doc) = cursor.try_next().await? {
-                if let Ok(token) = doc.get_str("_id") {
-                    match doc.get_str("device_token") {
-                        Ok(device_token) => batch.push(Token::new(token.to_string(), Some(device_token.to_string()))),
-                        Err(_) =>  batch.push(Token::new(token.to_string(), None)),
-                    };
-                } else {
-                    continue
-                }
+        let mut cursor = self.token_service.find_all_tokens().await?;
+
+        while let Some(doc) = cursor.try_next().await? {
+            if let Ok(token) = doc.get_str("_id") {
+                match doc.get_str("device_token") {
+                    Ok(device_token) => batch.push(Token::new(token.to_string(), Some(device_token.to_string()))),
+                    Err(_) =>  batch.push(Token::new(token.to_string(), None)),
+                };
+            } else {
+                continue
             }
-
-            if batch.is_empty() {
-                break; 
-            }
-
-            self.clone().process_batch(&batch).await?;
-            skip_count += batch_size as u64; 
         }
-
+        
+        self.clone().process_batch(&batch).await?;
+        
         Ok(())
     }
     async fn process_batch(self: Arc<Self>, batch: &[Token]) -> Result<()> {

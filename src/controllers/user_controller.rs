@@ -1,8 +1,8 @@
 use crate::controllers::shared::app_state::AppState;
 use crate::controllers::shared::handler_errors::handle_any_error;
 use crate::models::token::Token;
-use crate::services::interfaces::TokenServiceInterface;
-use crate::services::interfaces::UserServiceInterface;
+use crate::services::data_service_interfaces::TokenServiceInterface;
+use crate::services::data_service_interfaces::UserServiceInterface;
 use actix_web::{delete, get, post, web, HttpResponse};
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {

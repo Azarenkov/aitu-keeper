@@ -3,12 +3,12 @@ use crate::models::deadline::{sort_deadlines, Deadline};
 use crate::models::grade::{sort_grades_overview, Grade, GradeOverview, GradesOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
-use crate::services::interfaces::CourseServiceInterface;
-use crate::services::interfaces::DeadlineServiceInterface;
-use crate::services::interfaces::GradeServiceInterface;
-use crate::services::interfaces::ProviderInterface;
-use crate::services::interfaces::TokenServiceInterface;
-use crate::services::interfaces::UserServiceInterface;
+use crate::services::data_service_interfaces::CourseServiceInterface;
+use crate::services::data_service_interfaces::DeadlineServiceInterface;
+use crate::services::data_service_interfaces::GradeServiceInterface;
+use crate::services::provider_interfaces::DataProviderInterface;
+use crate::services::data_service_interfaces::TokenServiceInterface;
+use crate::services::data_service_interfaces::UserServiceInterface;
 use async_trait::async_trait;
 use std::sync::Arc;
 use mongodb::bson::Document;
@@ -16,11 +16,12 @@ use mongodb::Cursor;
 use crate::models::errors::ApiError;
 use anyhow::Result;
 use anyhow::Error;
+use derive_builder::Builder;
 
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {
     async fn save(&self, token: &Token) -> Result<()>;
-    async fn find_all_device_tokens(&self, skip: u64, limit: i64) -> Result<Cursor<Document>>;
+    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>>;
     async fn delete(&self, token: &str) -> Result<()>;
 }
 
@@ -50,20 +51,14 @@ pub trait GradeRepositoryInterface: Send + Sync {
     async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>>;
 }
 
+#[derive(Builder)]
 pub struct DataService  {
-    data_provider: Arc<dyn ProviderInterface>,
+    data_provider: Arc<dyn DataProviderInterface>,
     token_repository: Arc<dyn TokenRepositoryInterface>,
     user_repository: Arc<dyn UserRepositoryInterface>,
     course_repository: Arc<dyn CourseRepositoryInterface>,
     grade_repository: Arc<dyn GradeRepositoryInterface>,
     deadline_repository: Arc<dyn DeadlineRepositoryInterface>,
-}
-
-impl DataService {
-    pub fn new(data_provider: Arc<dyn ProviderInterface>, token_repository: Arc<dyn TokenRepositoryInterface>, user_repository: Arc<dyn UserRepositoryInterface>, course_repository: Arc<dyn CourseRepositoryInterface>, grade_repository: Arc<dyn GradeRepositoryInterface>, deadline_repository: Arc<dyn DeadlineRepositoryInterface>) -> Self {
-        Self { data_provider, token_repository, user_repository, course_repository, grade_repository, deadline_repository }
-    }
-    
 }
 
 #[async_trait]
@@ -87,8 +82,8 @@ impl TokenServiceInterface for DataService {
         self.token_repository.delete(token).await
     }
 
-    async fn find_all_tokens(&self, skip: u64, limit: i64) -> Result<Cursor<Document>> {
-        self.token_repository.find_all_device_tokens(skip, limit).await
+    async fn find_all_tokens(&self) -> Result<Cursor<Document>> {
+        self.token_repository.find_all_device_tokens().await
     }
 
     async fn fetch_and_save_data(&self, token: &str) -> Result<()> {

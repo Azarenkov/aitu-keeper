@@ -1,6 +1,6 @@
 use crate::controllers::shared::app_state::AppState;
 use crate::controllers::shared::handler_errors::handle_any_error;
-use crate::services::interfaces::DeadlineServiceInterface;
+use crate::services::data_service_interfaces::DeadlineServiceInterface;
 use actix_web::{get, web, HttpResponse};
 
 pub fn deadline_routes(cfg: &mut web::ServiceConfig) {
