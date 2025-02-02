@@ -94,7 +94,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
                 }
                 println!("from tokio");
             
-                tokio::time::sleep(Duration::from_secs(5)).await;
+                tokio::time::sleep(Duration::from_secs(3)).await;
             }
         }
     });

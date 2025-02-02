@@ -101,3 +101,104 @@ pub fn compare_deadlines<'a>(external_deadlines: &'a [Deadline], deadlines: &[De
     new_deadlines
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_time() {
+        assert_eq!(extract_time("12:34"), Some("12:34".to_string()));
+        assert_eq!(extract_time("Invalid time"), None);
+        assert_eq!(extract_time("Time is 12:34"), Some("12:34".to_string()));
+    }
+
+    #[test]
+    fn test_parse_time_to_seconds() -> Result<()> {
+        assert_eq!(parse_time_to_seconds("12:34")?, 45240);
+        assert!(parse_time_to_seconds("Invalid time").is_err());
+        Ok(())
+    }
+    #[test]
+    fn test_extract_date_and_time() {
+        let html = r#"<a href="some_link">Some Date</a>, 10:00"#;
+        assert_eq!(extract_date_and_time(html), Some("Some Date 10:00".to_string()));
+
+        let html_no_match = r#"<p>No date and time here</p>"#;
+        assert_eq!(extract_date_and_time(html_no_match), None);
+    }
+
+
+    #[test]
+    fn test_compare_deadlines_empty() {
+        let external_deadlines = vec![];
+        let deadlines = vec![];
+        let result = compare_deadlines(&external_deadlines, &deadlines);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_compare_deadlines_new_deadline() {
+        let external_deadlines = vec![
+            Deadline {
+                name: "Test Deadline".to_string(),
+                timeusermidnight: 1678886400,
+                formattedtime: "2024-02-01 12:00".to_string(),
+                coursename: Some("Math".to_string()),
+            },
+        ];
+        let deadlines = vec![];
+        let result = compare_deadlines(&external_deadlines, &deadlines);
+        assert_eq!(result.len(), 1);
+
+    }
+
+    #[test]
+    fn test_compare_deadlines_existing_deadline() {
+        let external_deadlines = vec![
+            Deadline {
+                name: "Test Deadline".to_string(),
+                timeusermidnight: 1678886400,
+                formattedtime: "2024-02-01 12:00".to_string(),
+                coursename: Some("Math".to_string()),
+            },
+        ];
+
+        let deadlines = vec![
+            Deadline {
+                name: "Test Deadline".to_string(),
+                timeusermidnight: 1678886400,
+                formattedtime: "2024-02-01 12:00".to_string(),
+                coursename: Some("Math".to_string()),
+            },
+        ];
+        let result = compare_deadlines(&external_deadlines, &deadlines);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_sort_deadlines_empty() -> Result<()> {
+        let mut deadlines: Vec<Deadline> = Vec::new();
+        let result = sort_deadlines(&mut deadlines)?;
+        assert!(result.is_empty());
+        Ok(())
+    }
+
+
+    #[test]
+    fn test_sort_deadlines_past_deadline() -> Result<()> {
+        let mut deadlines = vec![
+            Deadline {
+                name: "Past Deadline".to_string(),
+                timeusermidnight: 1678886400,
+                formattedtime: "<a href=\"some link\">Some Date</a>, 12:00".to_string(),
+                coursename: Some("Math".to_string()),
+            }
+        ];
+
+        let result = sort_deadlines(&mut deadlines)?;
+        assert!(result.is_empty());
+
+        Ok(())
+    }
+}
+

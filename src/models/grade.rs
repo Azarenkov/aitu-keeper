@@ -6,6 +6,7 @@ pub struct UserGrades {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone)]
 pub struct Grade {
     pub coursename: Option<String>,
     courseid: i64,
@@ -83,10 +84,91 @@ pub fn compare_grades_overview<'a>(external_grades_overview: &'a [GradeOverview]
     new_grades_overview
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_compare_grades_empty() {
+        let mut external_grades = vec![];
+        let mut grades = vec![];
+        let result = compare_grades(&mut external_grades, &mut grades);
+        assert!(result.is_empty());
+    }
 
+    #[test]
+    fn test_compare_grades_different_course_ids() {
+        let mut external_grades = vec![
+            Grade {
+                coursename: Some("Math".to_string()),
+                courseid: 1,
+                gradeitems: vec![],
+            },
+        ];
+        let mut grades = vec![
+            Grade {
+                coursename: Some("Physics".to_string()),
+                courseid: 2,
+                gradeitems: vec![],
+            },
+        ];
+        let result = compare_grades(&mut external_grades, &mut grades);
+        assert!(result.is_empty());
+    }
 
+    #[test]
+    fn test_compare_grades_same_course_different_grades() {
+        let mut external_grades = vec![
+            Grade {
+                coursename: Some("Math".to_string()),
+                courseid: 1,
+                gradeitems: vec![
+                    GradeItems {
+                        id: 1,
+                        itemname: "Homework 1".to_string(),
+                        percentageformatted: "50.00%".to_string(),
+                    },
+                ],
+            },
+        ];
+        let mut grades = vec![
+            Grade {
+                coursename: Some("Math".to_string()),
+                courseid: 1,
+                gradeitems: vec![
+                    GradeItems {
+                        id: 1,
+                        itemname: "Homework 1".to_string(),
+                        percentageformatted: "60.00%".to_string(),
+                    },
+                ],
+            },
+        ];
 
+        let result = compare_grades(&mut external_grades, &mut grades);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0.percentageformatted, "50.00%");
+        assert_eq!(result[0].1.percentageformatted, "60.00%");
+    }
 
+    #[test]
+    fn test_compare_grades_same_course_same_grades() {
+        let mut external_grades = vec![
+            Grade {
+                coursename: Some("Math".to_string()),
+                courseid: 1,
+                gradeitems: vec![
+                    GradeItems {
+                        id: 1,
+                        itemname: "Homework 1".to_string(),
+                        percentageformatted: "50.00%".to_string(),
+                    },
+                ],
+            },
+        ];
+        let mut grades = external_grades.clone();
 
-
-
+        let result = compare_grades(&mut external_grades, &mut grades);
+        assert!(result.is_empty());
+    }
+}
