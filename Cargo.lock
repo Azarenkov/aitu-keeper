@@ -3,25 +3,6 @@
 version = 4
 
 [[package]]
-name = "AITU-Web-Server"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "anyhow",
- "async-trait",
- "chrono",
- "derive_builder",
- "fcm-rs",
- "futures",
- "futures-util",
- "mongodb",
- "regex",
- "reqwest",
- "serde",
- "tokio",
-]
-
-[[package]]
 name = "actix-codec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -239,6 +220,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "aitu-web-app"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "derive_builder",
+ "fcm-rs",
+ "futures",
+ "futures-util",
+ "mongodb",
+ "regex",
+ "reqwest",
+ "serde",
+ "tokio",
 ]
 
 [[package]]

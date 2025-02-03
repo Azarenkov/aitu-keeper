@@ -1,6 +1,6 @@
+use crate::models::errors::ApiError;
 use actix_web::HttpResponse;
 use anyhow::Error;
-use crate::models::errors::ApiError;
 
 pub fn handle_any_error(e: &Error) -> HttpResponse {
     if let Some(api_err) = e.downcast_ref::<ApiError>() {

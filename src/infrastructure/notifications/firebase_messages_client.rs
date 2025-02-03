@@ -1,11 +1,11 @@
 use crate::services::provider_interfaces::NotificationProviderInterface;
+use anyhow::Result;
 use async_trait::async_trait;
 use fcm_rs::client::FcmClient;
 use fcm_rs::models::{Message, Notification};
-use anyhow::Result;
 
 pub struct FirebaseMessagesClient {
-    pub client: FcmClient
+    pub client: FcmClient,
 }
 
 impl FirebaseMessagesClient {

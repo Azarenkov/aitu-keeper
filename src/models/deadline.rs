@@ -1,8 +1,8 @@
+use anyhow::Result;
 use chrono::Timelike;
 use chrono::{NaiveTime, Utc};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use anyhow::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Events {
@@ -19,10 +19,12 @@ pub struct Deadline {
 
 impl Deadline {
     pub fn create_body_message_deadline(&self) -> String {
-        format!("Course: {}\nTask: {}\nUntil {}",
-                self.coursename.clone().unwrap_or( "-".to_string()),
-                self.name,
-                self.formattedtime)
+        format!(
+            "Course: {}\nTask: {}\nUntil {}",
+            self.coursename.clone().unwrap_or("-".to_string()),
+            self.name,
+            self.formattedtime
+        )
     }
 }
 
@@ -34,7 +36,7 @@ pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>> {
 
     for deadline in deadlines.iter_mut() {
         if deadline.timeusermidnight + 86400 < current_unix_time {
-            continue
+            continue;
         }
         let seconds_after_mid;
         if let Some(time) = extract_time(&deadline.formattedtime) {
@@ -45,11 +47,12 @@ pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>> {
 
         deadline.timeusermidnight += seconds_after_mid;
 
-        if deadline.timeusermidnight + 2 >  current_unix_time {
-            let time_description = extract_date_and_time(&deadline.formattedtime).unwrap_or_else(|| "No time".to_string());
+        if deadline.timeusermidnight + 2 > current_unix_time {
+            let time_description = extract_date_and_time(&deadline.formattedtime)
+                .unwrap_or_else(|| "No time".to_string());
             deadline.formattedtime = time_description;
         } else {
-            continue
+            continue;
         }
         sorted_deadlines.push(deadline.clone())
     }
@@ -71,7 +74,6 @@ pub fn parse_time_to_seconds(time_str: &str) -> Result<i64> {
     let native_time = NaiveTime::parse_from_str(time_str, format)?;
     let seconds = native_time.num_seconds_from_midnight() as i64;
     Ok(seconds)
-
 }
 
 pub fn extract_date_and_time(html: &str) -> Option<String> {
@@ -85,11 +87,16 @@ pub fn extract_date_and_time(html: &str) -> Option<String> {
     }
 }
 
-pub fn compare_deadlines<'a>(external_deadlines: &'a [Deadline], deadlines: &[Deadline]) -> Vec<&'a Deadline> {
+pub fn compare_deadlines<'a>(
+    external_deadlines: &'a [Deadline],
+    deadlines: &[Deadline],
+) -> Vec<&'a Deadline> {
     let mut new_deadlines = Vec::new();
     for external_deadline in external_deadlines {
         if !deadlines.contains(external_deadline) {
-            let course_name = deadlines.iter().find(|dealine| dealine.coursename == external_deadline.coursename);
+            let course_name = deadlines
+                .iter()
+                .find(|dealine| dealine.coursename == external_deadline.coursename);
             if let Some(_course_name) = course_name {
                 new_deadlines.push(external_deadline);
             } else {
@@ -121,12 +128,14 @@ mod tests {
     #[test]
     fn test_extract_date_and_time() {
         let html = r#"<a href="some_link">Some Date</a>, 10:00"#;
-        assert_eq!(extract_date_and_time(html), Some("Some Date 10:00".to_string()));
+        assert_eq!(
+            extract_date_and_time(html),
+            Some("Some Date 10:00".to_string())
+        );
 
         let html_no_match = r#"<p>No date and time here</p>"#;
         assert_eq!(extract_date_and_time(html_no_match), None);
     }
-
 
     #[test]
     fn test_compare_deadlines_empty() {
@@ -138,39 +147,32 @@ mod tests {
 
     #[test]
     fn test_compare_deadlines_new_deadline() {
-        let external_deadlines = vec![
-            Deadline {
-                name: "Test Deadline".to_string(),
-                timeusermidnight: 1678886400,
-                formattedtime: "2024-02-01 12:00".to_string(),
-                coursename: Some("Math".to_string()),
-            },
-        ];
+        let external_deadlines = vec![Deadline {
+            name: "Test Deadline".to_string(),
+            timeusermidnight: 1678886400,
+            formattedtime: "2024-02-01 12:00".to_string(),
+            coursename: Some("Math".to_string()),
+        }];
         let deadlines = vec![];
         let result = compare_deadlines(&external_deadlines, &deadlines);
         assert_eq!(result.len(), 1);
-
     }
 
     #[test]
     fn test_compare_deadlines_existing_deadline() {
-        let external_deadlines = vec![
-            Deadline {
-                name: "Test Deadline".to_string(),
-                timeusermidnight: 1678886400,
-                formattedtime: "2024-02-01 12:00".to_string(),
-                coursename: Some("Math".to_string()),
-            },
-        ];
+        let external_deadlines = vec![Deadline {
+            name: "Test Deadline".to_string(),
+            timeusermidnight: 1678886400,
+            formattedtime: "2024-02-01 12:00".to_string(),
+            coursename: Some("Math".to_string()),
+        }];
 
-        let deadlines = vec![
-            Deadline {
-                name: "Test Deadline".to_string(),
-                timeusermidnight: 1678886400,
-                formattedtime: "2024-02-01 12:00".to_string(),
-                coursename: Some("Math".to_string()),
-            },
-        ];
+        let deadlines = vec![Deadline {
+            name: "Test Deadline".to_string(),
+            timeusermidnight: 1678886400,
+            formattedtime: "2024-02-01 12:00".to_string(),
+            coursename: Some("Math".to_string()),
+        }];
         let result = compare_deadlines(&external_deadlines, &deadlines);
         assert!(result.is_empty());
     }
@@ -183,17 +185,14 @@ mod tests {
         Ok(())
     }
 
-
     #[test]
     fn test_sort_deadlines_past_deadline() -> Result<()> {
-        let mut deadlines = vec![
-            Deadline {
-                name: "Past Deadline".to_string(),
-                timeusermidnight: 1678886400,
-                formattedtime: "<a href=\"some link\">Some Date</a>, 12:00".to_string(),
-                coursename: Some("Math".to_string()),
-            }
-        ];
+        let mut deadlines = vec![Deadline {
+            name: "Past Deadline".to_string(),
+            timeusermidnight: 1678886400,
+            formattedtime: "<a href=\"some link\">Some Date</a>, 12:00".to_string(),
+            coursename: Some("Math".to_string()),
+        }];
 
         let result = sort_deadlines(&mut deadlines)?;
         assert!(result.is_empty());
@@ -201,4 +200,3 @@ mod tests {
         Ok(())
     }
 }
-

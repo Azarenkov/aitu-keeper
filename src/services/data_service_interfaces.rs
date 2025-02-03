@@ -1,11 +1,11 @@
-use async_trait::async_trait;
-use mongodb::bson::Document;
-use mongodb::Cursor;
 use crate::models::course::Course;
 use crate::models::deadline::Deadline;
 use crate::models::grade::{Grade, GradeOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
+use async_trait::async_trait;
+use mongodb::bson::Document;
+use mongodb::Cursor;
 
 #[async_trait]
 pub trait TokenServiceInterface: Send + Sync {
@@ -22,15 +22,20 @@ pub trait UserServiceInterface: Send + Sync {
 }
 
 #[async_trait]
-pub trait CourseServiceInterface: Send + Sync  {
+pub trait CourseServiceInterface: Send + Sync {
     async fn get_courses(&self, token: &str) -> anyhow::Result<Vec<Course>>;
     async fn update_courses(&self, token: &str, user: &User) -> anyhow::Result<Vec<Course>>;
 }
 
 #[async_trait]
-pub trait GradeServiceInterface: Send + Sync  {
+pub trait GradeServiceInterface: Send + Sync {
     async fn get_grades(&self, token: &str) -> anyhow::Result<Vec<Grade>>;
-    async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> anyhow::Result<()>;
+    async fn update_grades(
+        &self,
+        token: &str,
+        user: &User,
+        courses: &[Course],
+    ) -> anyhow::Result<()>;
     async fn get_grades_overview(&self, token: &str) -> anyhow::Result<Vec<GradeOverview>>;
     async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> anyhow::Result<()>;
 }

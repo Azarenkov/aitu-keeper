@@ -9,7 +9,9 @@ pub struct Token {
 
 impl Token {
     pub fn new(token: String, device_token: Option<String>) -> Self {
-        Self { token, device_token }
+        Self {
+            token,
+            device_token,
+        }
     }
 }
-

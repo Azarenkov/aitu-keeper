@@ -9,14 +9,17 @@ pub struct User {
 
 impl User {
     pub fn create_body_message_user(&self) -> String {
-        format!("Email: {}\nFullname: {}\nUser_id: {}", self.username, self.fullname, self.userid)
+        format!(
+            "Email: {}\nFullname: {}\nUser_id: {}",
+            self.username, self.fullname, self.userid
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_create_body_message_user() {
         let user = User {

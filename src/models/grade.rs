@@ -2,34 +2,29 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserGrades {
-    pub usergrades: Vec<Grade>
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[derive(Clone)]
-pub struct Grade {
-    pub coursename: Option<String>,
-    courseid: i64,
-    gradeitems: Vec<GradeItems>
+    pub usergrades: Vec<Grade>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[derive(PartialEq)]
+pub struct Grade {
+    pub coursename: Option<String>,
+    courseid: i64,
+    gradeitems: Vec<GradeItems>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct GradeItems {
     id: i64,
     pub itemname: String,
-    pub percentageformatted: String
+    pub percentageformatted: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[derive(PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct GradesOverview {
-    pub grades: Vec<GradeOverview>
+    pub grades: Vec<GradeOverview>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-#[derive(PartialEq)]
-#[derive(Clone)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct GradeOverview {
     pub course_name: Option<String>,
     pub courseid: i64,
@@ -37,7 +32,10 @@ pub struct GradeOverview {
     rawgrade: String,
 }
 
-pub fn compare_grades<'a>(external_grades: &'a mut [Grade], grades: &'a mut [Grade]) -> Vec<(&'a GradeItems, &'a GradeItems)> {
+pub fn compare_grades<'a>(
+    external_grades: &'a mut [Grade],
+    grades: &'a mut [Grade],
+) -> Vec<(&'a GradeItems, &'a GradeItems)> {
     external_grades.sort_by_key(|g| g.courseid);
     grades.sort_by_key(|g| g.courseid);
 
@@ -51,11 +49,16 @@ pub fn compare_grades<'a>(external_grades: &'a mut [Grade], grades: &'a mut [Gra
     let mut new_and_old_grades = Vec::new();
 
     for external_grade in external_grades {
-        if let Ok(grade_index) = grades.binary_search_by_key(&external_grade.courseid, |g| g.courseid) {
+        if let Ok(grade_index) =
+            grades.binary_search_by_key(&external_grade.courseid, |g| g.courseid)
+        {
             let grade = &grades[grade_index];
 
             for external_item in &external_grade.gradeitems {
-                if let Ok(item_index) = grade.gradeitems.binary_search_by_key(&external_item.id, |gi| gi.id) {
+                if let Ok(item_index) = grade
+                    .gradeitems
+                    .binary_search_by_key(&external_item.id, |gi| gi.id)
+                {
                     let found_item = &grade.gradeitems[item_index];
                     if external_item.percentageformatted != found_item.percentageformatted {
                         new_and_old_grades.push((external_item, found_item));
@@ -72,7 +75,10 @@ pub fn sort_grades_overview(grades_overview: &mut Vec<GradeOverview>) {
     grades_overview.retain(|grade_overview| grade_overview.grade != "0.00");
 }
 
-pub fn compare_grades_overview<'a>(external_grades_overview: &'a [GradeOverview], grades_overview: &[GradeOverview]) -> Vec<&'a GradeOverview> {
+pub fn compare_grades_overview<'a>(
+    external_grades_overview: &'a [GradeOverview],
+    grades_overview: &[GradeOverview],
+) -> Vec<&'a GradeOverview> {
     let mut new_grades_overview = Vec::new();
 
     for external_grade_overview in external_grades_overview {
@@ -87,7 +93,7 @@ pub fn compare_grades_overview<'a>(external_grades_overview: &'a [GradeOverview]
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_compare_grades_empty() {
         let mut external_grades = vec![];
@@ -98,52 +104,40 @@ mod tests {
 
     #[test]
     fn test_compare_grades_different_course_ids() {
-        let mut external_grades = vec![
-            Grade {
-                coursename: Some("Math".to_string()),
-                courseid: 1,
-                gradeitems: vec![],
-            },
-        ];
-        let mut grades = vec![
-            Grade {
-                coursename: Some("Physics".to_string()),
-                courseid: 2,
-                gradeitems: vec![],
-            },
-        ];
+        let mut external_grades = vec![Grade {
+            coursename: Some("Math".to_string()),
+            courseid: 1,
+            gradeitems: vec![],
+        }];
+        let mut grades = vec![Grade {
+            coursename: Some("Physics".to_string()),
+            courseid: 2,
+            gradeitems: vec![],
+        }];
         let result = compare_grades(&mut external_grades, &mut grades);
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_compare_grades_same_course_different_grades() {
-        let mut external_grades = vec![
-            Grade {
-                coursename: Some("Math".to_string()),
-                courseid: 1,
-                gradeitems: vec![
-                    GradeItems {
-                        id: 1,
-                        itemname: "Homework 1".to_string(),
-                        percentageformatted: "50.00%".to_string(),
-                    },
-                ],
-            },
-        ];
-        let mut grades = vec![
-            Grade {
-                coursename: Some("Math".to_string()),
-                courseid: 1,
-                gradeitems: vec![
-                    GradeItems {
-                        id: 1,
-                        itemname: "Homework 1".to_string(),
-                        percentageformatted: "60.00%".to_string(),
-                    },
-                ],
-            },
-        ];
+        let mut external_grades = vec![Grade {
+            coursename: Some("Math".to_string()),
+            courseid: 1,
+            gradeitems: vec![GradeItems {
+                id: 1,
+                itemname: "Homework 1".to_string(),
+                percentageformatted: "50.00%".to_string(),
+            }],
+        }];
+        let mut grades = vec![Grade {
+            coursename: Some("Math".to_string()),
+            courseid: 1,
+            gradeitems: vec![GradeItems {
+                id: 1,
+                itemname: "Homework 1".to_string(),
+                percentageformatted: "60.00%".to_string(),
+            }],
+        }];
 
         let result = compare_grades(&mut external_grades, &mut grades);
         assert_eq!(result.len(), 1);
@@ -153,19 +147,15 @@ mod tests {
 
     #[test]
     fn test_compare_grades_same_course_same_grades() {
-        let mut external_grades = vec![
-            Grade {
-                coursename: Some("Math".to_string()),
-                courseid: 1,
-                gradeitems: vec![
-                    GradeItems {
-                        id: 1,
-                        itemname: "Homework 1".to_string(),
-                        percentageformatted: "50.00%".to_string(),
-                    },
-                ],
-            },
-        ];
+        let mut external_grades = vec![Grade {
+            coursename: Some("Math".to_string()),
+            courseid: 1,
+            gradeitems: vec![GradeItems {
+                id: 1,
+                itemname: "Homework 1".to_string(),
+                percentageformatted: "50.00%".to_string(),
+            }],
+        }];
         let mut grades = external_grades.clone();
 
         let result = compare_grades(&mut external_grades, &mut grades);

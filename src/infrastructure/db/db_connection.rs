@@ -4,7 +4,6 @@ use mongodb::{Client, Database};
 use std::time::Duration;
 
 pub async fn connect(db_env: &str) -> mongodb::error::Result<Database> {
-
     let mut client_options = ClientOptions::parse(db_env).await?;
 
     client_options.server_selection_timeout = Option::from(Duration::from_secs(4));
@@ -14,7 +13,7 @@ pub async fn connect(db_env: &str) -> mongodb::error::Result<Database> {
 
     let client = Client::with_options(client_options)?;
     let db = client.database("main");
-    
+
     db.run_command(doc! { "ping": 1 }).await?;
     println!("Pinged your deployment. You successfully connected to MongoDB!");
 
