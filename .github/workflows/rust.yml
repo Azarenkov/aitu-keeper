@@ -1,0 +1,33 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  MONGODB_URI: ${{ secrets.MONGODB_URI }}
+  BASE_URL: ${{ secrets.BASE_URL }}
+  FORMAT_URL: ${{ secrets.FORMAT_URL }}
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up service account key
+      run: echo "${{ secrets.SERVICE_ACCOUNT_KEY }}" > service_account_key.json
+      
+    - name: Build
+      run: cargo build --verbose
+      
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: Run application
+      run: cargo run --release
