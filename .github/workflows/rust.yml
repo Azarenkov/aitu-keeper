@@ -24,7 +24,7 @@ jobs:
       run: echo "${{ secrets.SERVICE_ACCOUNT_KEY }}" > service_account_key.json
       
     - name: Build
-      run: cargo build --dev
+      run: cargo build
       
     - name: Run tests
-      run: cargo test --dev
+      run: cargo test
