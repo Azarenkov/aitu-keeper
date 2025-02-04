@@ -16,4 +16,8 @@ chrono = "0.4.39"
 fcm-rs = "0.2.0"
 futures = "0.3.31"
 anyhow = "1.0.95"
-derive_builder = "0.20.2"
+console-subscriber = "0.4.1"
+
+[profile.release]
+debug = 1
+

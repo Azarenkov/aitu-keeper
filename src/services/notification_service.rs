@@ -11,12 +11,10 @@ use crate::services::notification_service_interfaces::NotificationServiceInterfa
 use crate::services::provider_interfaces::{DataProviderInterface, NotificationProviderInterface};
 use anyhow::Result;
 use async_trait::async_trait;
-use derive_builder::Builder;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
 use tokio::task;
 
-#[derive(Builder)]
 pub struct NotificationService {
     notification_provider: Arc<dyn NotificationProviderInterface>,
     data_provider: Arc<dyn DataProviderInterface>,
@@ -25,6 +23,28 @@ pub struct NotificationService {
     course_service: Arc<dyn CourseServiceInterface>,
     grade_service: Arc<dyn GradeServiceInterface>,
     deadline_service: Arc<dyn DeadlineServiceInterface>,
+}
+
+impl NotificationService {
+    pub fn new(
+        notification_provider: Arc<dyn NotificationProviderInterface>,
+        data_provider: Arc<dyn DataProviderInterface>,
+        token_service: Arc<dyn TokenServiceInterface>,
+        user_service: Arc<dyn UserServiceInterface>,
+        course_service: Arc<dyn CourseServiceInterface>,
+        grade_service: Arc<dyn GradeServiceInterface>,
+        deadline_service: Arc<dyn DeadlineServiceInterface>,
+    ) -> Self {
+        Self {
+            notification_provider,
+            data_provider,
+            token_service,
+            user_service,
+            course_service,
+            grade_service,
+            deadline_service,
+        }
+    }
 }
 
 #[async_trait]

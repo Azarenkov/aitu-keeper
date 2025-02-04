@@ -19,14 +19,15 @@ use crate::controllers::user_controller::user_routes;
 use crate::infrastructure::db::db_connection::connect;
 use crate::infrastructure::notifications::firebase_messages_client::FirebaseMessagesClient;
 use crate::repositories::data_repository::DataRepository;
-use crate::services::data_service::DataServiceBuilder;
-use crate::services::notification_service::NotificationServiceBuilder;
+use crate::services::data_service::DataService;
+use crate::services::notification_service::NotificationService;
 use crate::services::notification_service_interfaces::NotificationServiceInterface;
 use controllers::shared::app_state::AppState;
 use infrastructure::client::moodle_client::MoodleClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    console_subscriber::init();
     let app_state = setup().await?;
 
     HttpServer::new(move || {
@@ -58,31 +59,29 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
 
     let data_repository = Arc::new(DataRepository::new(db));
 
-    let data_service = DataServiceBuilder::default()
-        .data_provider(moodle_client.clone())
-        .token_repository(data_repository.clone())
-        .user_repository(data_repository.clone())
-        .course_repository(data_repository.clone())
-        .grade_repository(data_repository.clone())
-        .deadline_repository(data_repository.clone())
-        .build()
-        .unwrap();
+    let data_service = DataService::new(
+        moodle_client.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+        data_repository.clone(),
+    );
 
     let data_service = Arc::new(data_service);
 
     let fcm_client = FcmClient::new("service_account_key.json").await?;
     let fcm = Arc::new(FirebaseMessagesClient::new(fcm_client));
 
-    let notification_service = NotificationServiceBuilder::default()
-        .notification_provider(fcm)
-        .data_provider(moodle_client)
-        .token_service(data_service.clone())
-        .user_service(data_service.clone())
-        .course_service(data_service.clone())
-        .grade_service(data_service.clone())
-        .deadline_service(data_service.clone())
-        .build()
-        .unwrap();
+    let notification_service = NotificationService::new(
+        fcm,
+        moodle_client,
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+        data_service.clone(),
+    );
 
     let notification_service = Arc::new(notification_service);
 

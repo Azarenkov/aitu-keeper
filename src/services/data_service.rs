@@ -13,7 +13,6 @@ use crate::services::provider_interfaces::DataProviderInterface;
 use anyhow::Error;
 use anyhow::Result;
 use async_trait::async_trait;
-use derive_builder::Builder;
 use mongodb::bson::Document;
 use mongodb::Cursor;
 use std::sync::Arc;
@@ -55,7 +54,6 @@ pub trait GradeRepositoryInterface: Send + Sync {
     async fn find_grades_overview_by_token(&self, token: &str) -> Result<Vec<GradeOverview>>;
 }
 
-#[derive(Builder)]
 pub struct DataService {
     data_provider: Arc<dyn DataProviderInterface>,
     token_repository: Arc<dyn TokenRepositoryInterface>,
@@ -63,6 +61,26 @@ pub struct DataService {
     course_repository: Arc<dyn CourseRepositoryInterface>,
     grade_repository: Arc<dyn GradeRepositoryInterface>,
     deadline_repository: Arc<dyn DeadlineRepositoryInterface>,
+}
+
+impl DataService {
+    pub fn new(
+        data_provider: Arc<dyn DataProviderInterface>,
+        token_repository: Arc<dyn TokenRepositoryInterface>,
+        user_repository: Arc<dyn UserRepositoryInterface>,
+        course_repository: Arc<dyn CourseRepositoryInterface>,
+        grade_repository: Arc<dyn GradeRepositoryInterface>,
+        deadline_repository: Arc<dyn DeadlineRepositoryInterface>,
+    ) -> Self {
+        Self {
+            data_provider,
+            token_repository,
+            user_repository,
+            course_repository,
+            grade_repository,
+            deadline_repository,
+        }
+    }
 }
 
 #[async_trait]
