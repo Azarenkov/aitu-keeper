@@ -99,9 +99,8 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
                 if let Err(e) = notification_service.clone().send_notifications().await {
                     eprintln!("{}", e);
                 }
-                println!("from tokio");
 
-                tokio::time::sleep(Duration::from_secs(3)).await;
+                tokio::time::sleep(Duration::from_secs(60)).await;
             }
         }
     });

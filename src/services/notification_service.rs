@@ -13,6 +13,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tokio::task;
 
 pub struct NotificationService {
@@ -73,11 +74,14 @@ impl NotificationServiceInterface for NotificationService {
         Ok(())
     }
     async fn process_batch(self: Arc<Self>, batch: &[Token]) -> Result<()> {
+        let semaphore = Arc::new(Semaphore::new(2));
+
         let mut handles = Vec::new();
 
         for tokens in batch.iter() {
             let self_clone = self.clone();
             let tokens = tokens.clone();
+            let permit = semaphore.clone().acquire_owned().await?;
 
             let handle = task::spawn(async move {
                 let token = &tokens.token;
@@ -107,6 +111,7 @@ impl NotificationServiceInterface for NotificationService {
                 if let Err(e) = self_clone.token_service.fetch_and_save_data(token).await {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
+                drop(permit);
             });
 
             handles.push(handle);
