@@ -31,6 +31,8 @@ use infrastructure::client::moodle_client::MoodleClient;
 async fn main() -> Result<(), Box<dyn Error>> {
     console_subscriber::init();
     let app_state = setup().await?;
+    let port = env::var("PORT").expect("You must set the PORT environment var!");
+    let address = format!("0.0.0.0:{}", port);
 
     HttpServer::new(move || {
         App::new()
@@ -45,7 +47,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     .to(HttpResponse::MethodNotAllowed),
             )
     })
-    .bind("0.0.0.0:8080")?
+    .bind(address)?
     .run()
     .await?;
     Ok(())
@@ -55,6 +57,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     let mongo_uri = env::var("MONGODB_URI").expect("You must set the MONGODB_URI environment var!");
     let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
     let format_url = env::var("FORMAT_URL").expect("You must set the FORMAT_URL environment var!");
+
     let service_account_key = env::var("SERVICE_ACCOUNT_KEY").expect("SERVICE_ACCOUNT_KEY must be set");
     let mut file = File::create("service_account_key.json")?;
     file.write_all(service_account_key.as_bytes())?;
