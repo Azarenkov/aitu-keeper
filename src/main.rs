@@ -3,6 +3,8 @@ use actix_web::{guard, web, App, HttpResponse, HttpServer};
 use fcm_rs::client::FcmClient;
 use std::env;
 use std::error::Error;
+use std::fs::File;
+use std::io::Write;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -53,6 +55,9 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     let mongo_uri = env::var("MONGODB_URI").expect("You must set the MONGODB_URI environment var!");
     let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
     let format_url = env::var("FORMAT_URL").expect("You must set the FORMAT_URL environment var!");
+    let service_account_key = env::var("SERVICE_ACCOUNT_KEY").expect("SERVICE_ACCOUNT_KEY must be set");
+    let mut file = File::create("service_account_key.json")?;
+    file.write_all(service_account_key.as_bytes())?;
 
     let moodle_client = Arc::new(MoodleClient::new(base_url, format_url));
     let db = connect(&mongo_uri).await?.collection("users");
