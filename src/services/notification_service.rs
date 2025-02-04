@@ -97,15 +97,24 @@ impl NotificationServiceInterface for NotificationService {
                             if let Ok(courses) =
                                 self_clone.send_course(token, device_token, &user).await
                             {
-                                let _ = self_clone
+                                if let Err(e) = self_clone
                                     .send_deadline(token, device_token, &courses)
-                                    .await;
-                                let _ = self_clone
+                                    .await
+                                {
+                                    eprintln!("Error sending deadline: {:?}", e);
+                                }
+                                if let Err(e) = self_clone
                                     .send_grade(token, device_token, &user, &courses)
-                                    .await;
-                                let _ = self_clone
+                                    .await
+                                {
+                                    eprintln!("Error sending grade: {:?}", e);
+                                }
+                                if let Err(e) = self_clone
                                     .send_grade_overview(token, device_token, &courses)
-                                    .await;
+                                    .await
+                                {
+                                    eprintln!("Error sending grade overview: {:?}", e);
+                                }
                             }
                         }
                         Err(e) => {
@@ -123,7 +132,9 @@ impl NotificationServiceInterface for NotificationService {
         }
 
         for handle in handles {
-            let _ = handle.await;
+            if let Err(e) = handle.await {
+                eprintln!("Task failed: {:?}", e);
+            }
         }
 
         Ok(())

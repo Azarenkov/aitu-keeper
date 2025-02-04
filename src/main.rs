@@ -58,7 +58,8 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
     let format_url = env::var("FORMAT_URL").expect("You must set the FORMAT_URL environment var!");
 
-    let service_account_key = env::var("SERVICE_ACCOUNT_KEY").expect("SERVICE_ACCOUNT_KEY must be set");
+    let service_account_key =
+        env::var("SERVICE_ACCOUNT_KEY").expect("SERVICE_ACCOUNT_KEY must be set");
     let mut file = File::create("service_account_key.json")?;
     file.write_all(service_account_key.as_bytes())?;
 
