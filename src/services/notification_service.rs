@@ -64,12 +64,17 @@ impl NotificationServiceInterface for NotificationService {
                     )),
                     Err(_) => batch.push(Token::new(token.to_string(), None)),
                 };
-            } else {
-                continue;
+            }
+
+            if batch.len() >= 10 {
+                self.clone().process_batch(&batch).await?;
+                batch.clear();
             }
         }
 
-        self.clone().process_batch(&batch).await?;
+        if !batch.is_empty() {
+            self.clone().process_batch(&batch).await?;
+        }
 
         Ok(())
     }
