@@ -29,7 +29,7 @@ use infrastructure::client::moodle_client::MoodleClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    console_subscriber::init();
+    // console_subscriber::init();
     let app_state = setup().await?;
     let port = env::var("PORT").expect("You must set the PORT environment var!");
     let address = format!("0.0.0.0:{}", port);
