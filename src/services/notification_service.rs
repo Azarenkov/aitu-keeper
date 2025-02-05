@@ -79,7 +79,7 @@ impl NotificationServiceInterface for NotificationService {
         Ok(())
     }
     async fn process_batch(self: Arc<Self>, batch: &[Token]) -> Result<()> {
-        let semaphore = Arc::new(Semaphore::new(2));
+        let semaphore = Arc::new(Semaphore::new(10));
 
         let mut handles = Vec::new();
 

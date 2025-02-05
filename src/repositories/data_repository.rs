@@ -43,7 +43,7 @@ impl TokenRepositoryInterface for DataRepository {
         let cursor = self
             .collection
             .find(filter)
-            .batch_size(10)
+            .batch_size(50)
             .no_cursor_timeout(true)
             .await?;
         Ok(cursor)
