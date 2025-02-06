@@ -1,5 +1,6 @@
 use actix_web::web::Data;
 use actix_web::{guard, web, App, HttpResponse, HttpServer};
+use base64::{engine::general_purpose, Engine as _};
 use dotenv::dotenv;
 use fcm_rs::client::FcmClient;
 use std::env;
@@ -7,7 +8,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
-// use std::time::Duration;
+// use tokio::time::Duration;
 
 mod controllers;
 mod infrastructure;
@@ -62,8 +63,11 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
 
     let service_account_key =
         env::var("SERVICE_ACCOUNT_KEY").expect("SERVICE_ACCOUNT_KEY must be set");
+    let decoded_service_key = general_purpose::STANDARD
+        .decode(service_account_key)
+        .unwrap();
     let mut file = File::create("service_account_key.json")?;
-    file.write_all(service_account_key.as_bytes())?;
+    file.write_all(&decoded_service_key)?;
 
     let moodle_client = Arc::new(MoodleClient::new(base_url, format_url));
     let db = connect(&mongo_uri).await?.collection("users");
@@ -96,14 +100,22 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
 
     let notification_service = Arc::new(notification_service);
 
+    let limit = 100;
+    let mut skip = 0;
+
     tokio::spawn({
         async move {
             loop {
-                if let Err(e) = notification_service.clone().send_notifications().await {
-                    eprintln!("{}", e);
-                }
+                // println!("{}", skip);
+                if let Err(e) = notification_service
+                    .clone()
+                    .send_notifications(limit, &mut skip)
+                    .await
+                {
+                    eprintln!("Error in sending notifications: {}", e);
+                };
 
-                // tokio::time::sleep(Duration::from_secs(2)).await;
+                // tokio::time::sleep(Duration::from_secs(5)).await;
             }
         }
     });

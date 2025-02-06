@@ -11,7 +11,7 @@ use mongodb::Cursor;
 pub trait TokenServiceInterface: Send + Sync {
     async fn create_token(&self, token: &Token) -> anyhow::Result<()>;
     async fn delete_one_user(&self, token: &str) -> anyhow::Result<()>;
-    async fn find_all_tokens(&self) -> anyhow::Result<Cursor<Document>>;
+    async fn find_all_tokens(&self, limit: i64, skip: u64) -> anyhow::Result<Cursor<Document>>;
     async fn fetch_and_save_data(&self, token: &str) -> anyhow::Result<()>;
 }
 

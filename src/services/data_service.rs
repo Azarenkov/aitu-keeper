@@ -20,7 +20,7 @@ use std::sync::Arc;
 #[async_trait]
 pub trait TokenRepositoryInterface: Send + Sync {
     async fn save(&self, token: &Token) -> Result<()>;
-    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>>;
+    async fn find_all_device_tokens(&self, limit: i64, skip: u64) -> Result<Cursor<Document>>;
     async fn delete(&self, token: &str) -> Result<()>;
 }
 
@@ -104,8 +104,10 @@ impl TokenServiceInterface for DataService {
         self.token_repository.delete(token).await
     }
 
-    async fn find_all_tokens(&self) -> Result<Cursor<Document>> {
-        self.token_repository.find_all_device_tokens().await
+    async fn find_all_tokens(&self, limit: i64, skip: u64) -> Result<Cursor<Document>> {
+        self.token_repository
+            .find_all_device_tokens(limit, skip)
+            .await
     }
 
     async fn fetch_and_save_data(&self, token: &str) -> Result<()> {

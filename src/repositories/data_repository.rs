@@ -37,15 +37,10 @@ impl TokenRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_all_device_tokens(&self) -> Result<Cursor<Document>> {
+    async fn find_all_device_tokens(&self, limit: i64, skip: u64) -> Result<Cursor<Document>> {
         let filter = doc! {"_id": {"$exists": true}};
 
-        let cursor = self
-            .collection
-            .find(filter)
-            .batch_size(50)
-            .no_cursor_timeout(true)
-            .await?;
+        let cursor = self.collection.find(filter).limit(limit).skip(skip).await?;
         Ok(cursor)
     }
 

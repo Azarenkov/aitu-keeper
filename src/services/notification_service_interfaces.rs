@@ -6,7 +6,11 @@ use std::sync::Arc;
 
 #[async_trait]
 pub trait NotificationServiceInterface: Send + Sync {
-    async fn send_notifications(self: Arc<Self>) -> anyhow::Result<()>;
+    async fn send_notifications<'a>(
+        self: Arc<Self>,
+        limit: i64,
+        skip: &'a mut u64,
+    ) -> anyhow::Result<()>;
     async fn process_batch(self: Arc<Self>, batch: &[Token]) -> anyhow::Result<()>;
     async fn send_user_info(&self, token: &str, device_token: &str) -> anyhow::Result<User>;
     async fn send_course(

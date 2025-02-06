@@ -50,12 +50,15 @@ impl NotificationService {
 
 #[async_trait]
 impl NotificationServiceInterface for NotificationService {
-    async fn send_notifications(self: Arc<Self>) -> Result<()> {
+    async fn send_notifications<'a>(self: Arc<Self>, limit: i64, skip: &'a mut u64) -> Result<()> {
         let mut batch = Vec::new();
 
-        let mut cursor = self.token_service.find_all_tokens().await?;
+        let mut cursor = self.token_service.find_all_tokens(limit, *skip).await?;
+
+        let mut has_documents = false;
 
         while let Some(doc) = cursor.try_next().await? {
+            has_documents = true;
             if let Ok(token) = doc.get_str("_id") {
                 match doc.get_str("device_token") {
                     Ok(device_token) => batch.push(Token::new(
@@ -64,20 +67,23 @@ impl NotificationServiceInterface for NotificationService {
                     )),
                     Err(_) => batch.push(Token::new(token.to_string(), None)),
                 };
-            }
-
-            if batch.len() >= 10 {
-                self.clone().process_batch(&batch).await?;
-                batch.clear();
+                *skip += 1;
             }
         }
 
-        if !batch.is_empty() {
-            self.clone().process_batch(&batch).await?;
+        // println!("{:?}", batch);
+
+        if !has_documents {
+            *skip = 0;
+            return Ok(());
         }
 
+        if let Err(e) = self.clone().process_batch(&batch).await {
+            eprintln!("Error processing batch: {}", e);
+        }
         Ok(())
     }
+
     async fn process_batch(self: Arc<Self>, batch: &[Token]) -> Result<()> {
         let semaphore = Arc::new(Semaphore::new(10));
 
