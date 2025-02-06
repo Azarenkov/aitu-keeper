@@ -8,6 +8,16 @@ use mongodb::bson::Document;
 use mongodb::Cursor;
 
 #[async_trait]
+pub trait DataServiceInterfaces:
+    TokenServiceInterface
+    + UserServiceInterface
+    + CourseServiceInterface
+    + GradeServiceInterface
+    + DeadlineServiceInterface
+{
+}
+
+#[async_trait]
 pub trait TokenServiceInterface: Send + Sync {
     async fn create_token(&self, token: &Token) -> anyhow::Result<()>;
     async fn delete_one_user(&self, token: &str) -> anyhow::Result<()>;

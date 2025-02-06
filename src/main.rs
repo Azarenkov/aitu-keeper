@@ -3,6 +3,9 @@ use actix_web::{guard, web, App, HttpResponse, HttpServer};
 use base64::{engine::general_purpose, Engine as _};
 use dotenv::dotenv;
 use fcm_rs::client::FcmClient;
+use services::data_service::RepositoryInterfaces;
+use services::data_service_interfaces::DataServiceInterfaces;
+use services::provider_interfaces::DataProviderInterface;
 use std::env;
 use std::error::Error;
 use std::fs::File;
@@ -69,34 +72,20 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     let mut file = File::create("service_account_key.json")?;
     file.write_all(&decoded_service_key)?;
 
-    let moodle_client = Arc::new(MoodleClient::new(base_url, format_url));
+    let moodle_client: Arc<dyn DataProviderInterface> =
+        Arc::new(MoodleClient::new(base_url, format_url));
     let db = connect(&mongo_uri).await?.collection("users");
 
-    let data_repository = Arc::new(DataRepository::new(db));
+    let data_repository: Arc<dyn RepositoryInterfaces> = Arc::new(DataRepository::new(db));
 
-    let data_service = DataService::new(
-        moodle_client.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-        data_repository.clone(),
-    );
-
-    let data_service = Arc::new(data_service);
+    let data_service = DataService::new(Arc::clone(&moodle_client), Arc::clone(&data_repository));
+    let data_service: Arc<dyn DataServiceInterfaces> = Arc::new(data_service);
 
     let fcm_client = FcmClient::new("service_account_key.json").await?;
     let fcm = Arc::new(FirebaseMessagesClient::new(fcm_client));
 
-    let notification_service = NotificationService::new(
-        fcm,
-        moodle_client,
-        data_service.clone(),
-        data_service.clone(),
-        data_service.clone(),
-        data_service.clone(),
-        data_service.clone(),
-    );
+    let notification_service =
+        NotificationService::new(fcm, moodle_client, Arc::clone(&data_service));
 
     let notification_service = Arc::new(notification_service);
 
@@ -120,7 +109,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
         }
     });
 
-    let app_state = AppState::new(data_service);
+    let app_state = AppState::new(Arc::clone(&data_service));
 
     Ok(app_state)
 }

@@ -6,7 +6,7 @@ use crate::models::token::Token;
 use crate::models::user::User;
 use crate::services::data_service::{
     CourseRepositoryInterface, DeadlineRepositoryInterface, GradeRepositoryInterface,
-    TokenRepositoryInterface, UserRepositoryInterface,
+    RepositoryInterfaces, TokenRepositoryInterface, UserRepositoryInterface,
 };
 use anyhow::{Error, Result};
 use async_trait::async_trait;
@@ -24,8 +24,11 @@ impl DataRepository {
 }
 
 #[async_trait]
+impl RepositoryInterfaces for DataRepository {}
+
+#[async_trait]
 impl TokenRepositoryInterface for DataRepository {
-    async fn save(&self, token: &Token) -> Result<()> {
+    async fn save_tokens(&self, token: &Token) -> Result<()> {
         let doc = doc! {"_id": &token.token, "device_token": &token.device_token };
         let existing_token = self.collection.find_one(doc! {"_id": &token.token}).await?;
 
@@ -59,7 +62,7 @@ impl TokenRepositoryInterface for DataRepository {
 
 #[async_trait]
 impl UserRepositoryInterface for DataRepository {
-    async fn find_by_token(&self, token: &str) -> Result<User> {
+    async fn find_user_by_token(&self, token: &str) -> Result<User> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
         if let Some(doc) = doc {
             match doc.get_document("user").ok() {
@@ -74,7 +77,7 @@ impl UserRepositoryInterface for DataRepository {
         }
     }
 
-    async fn save(&self, user: &User, token: &str) -> Result<()> {
+    async fn save_user(&self, user: &User, token: &str) -> Result<()> {
         let doc = doc! {
             "$set": {"user": to_bson(user)? }
         };
@@ -86,7 +89,7 @@ impl UserRepositoryInterface for DataRepository {
 
 #[async_trait]
 impl CourseRepositoryInterface for DataRepository {
-    async fn save(&self, token: &str, courses: &[Course]) -> Result<()> {
+    async fn save_courses(&self, token: &str, courses: &[Course]) -> Result<()> {
         let courses_doc = to_bson(courses)?;
         self.collection
             .update_one(
@@ -99,7 +102,7 @@ impl CourseRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Course>> {
+    async fn find_courses_by_token(&self, token: &str) -> Result<Vec<Course>> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
 
         if let Some(doc) = doc {
@@ -118,7 +121,7 @@ impl CourseRepositoryInterface for DataRepository {
 
 #[async_trait]
 impl GradeRepositoryInterface for DataRepository {
-    async fn save(&self, token: &str, grades: &[Grade]) -> Result<()> {
+    async fn save_grades(&self, token: &str, grades: &[Grade]) -> Result<()> {
         let grades_doc = to_bson(grades)?;
         self.collection
             .update_one(
@@ -131,7 +134,7 @@ impl GradeRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Grade>> {
+    async fn find_grades_by_token(&self, token: &str) -> Result<Vec<Grade>> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
 
         if let Some(doc) = doc {
@@ -183,7 +186,7 @@ impl GradeRepositoryInterface for DataRepository {
 
 #[async_trait]
 impl DeadlineRepositoryInterface for DataRepository {
-    async fn save(&self, token: &str, deadlines: &[Deadline]) -> Result<()> {
+    async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<()> {
         let deadlines_doc = to_bson(deadlines)?;
         self.collection
             .update_one(
@@ -196,7 +199,7 @@ impl DeadlineRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_by_token(&self, token: &str) -> Result<Vec<Deadline>> {
+    async fn find_deadlines_by_token(&self, token: &str) -> Result<Vec<Deadline>> {
         let doc = self.collection.find_one(doc! {"_id": token}).await?;
         if let Some(doc) = doc {
             if let Some(Bson::Array(deadlines_array)) = doc.get("deadlines") {

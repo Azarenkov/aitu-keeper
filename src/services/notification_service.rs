@@ -3,10 +3,6 @@ use crate::models::deadline::{compare_deadlines, sort_deadlines};
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
 use crate::models::token::Token;
 use crate::models::user::User;
-use crate::services::data_service_interfaces::{
-    CourseServiceInterface, DeadlineServiceInterface, GradeServiceInterface, TokenServiceInterface,
-    UserServiceInterface,
-};
 use crate::services::notification_service_interfaces::NotificationServiceInterface;
 use crate::services::provider_interfaces::{DataProviderInterface, NotificationProviderInterface};
 use anyhow::Result;
@@ -16,34 +12,24 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tokio::task;
 
+use super::data_service_interfaces::DataServiceInterfaces;
+
 pub struct NotificationService {
     notification_provider: Arc<dyn NotificationProviderInterface>,
     data_provider: Arc<dyn DataProviderInterface>,
-    token_service: Arc<dyn TokenServiceInterface>,
-    user_service: Arc<dyn UserServiceInterface>,
-    course_service: Arc<dyn CourseServiceInterface>,
-    grade_service: Arc<dyn GradeServiceInterface>,
-    deadline_service: Arc<dyn DeadlineServiceInterface>,
+    data_service: Arc<dyn DataServiceInterfaces>,
 }
 
 impl NotificationService {
     pub fn new(
         notification_provider: Arc<dyn NotificationProviderInterface>,
         data_provider: Arc<dyn DataProviderInterface>,
-        token_service: Arc<dyn TokenServiceInterface>,
-        user_service: Arc<dyn UserServiceInterface>,
-        course_service: Arc<dyn CourseServiceInterface>,
-        grade_service: Arc<dyn GradeServiceInterface>,
-        deadline_service: Arc<dyn DeadlineServiceInterface>,
+        data_service: Arc<dyn DataServiceInterfaces>,
     ) -> Self {
         Self {
             notification_provider,
             data_provider,
-            token_service,
-            user_service,
-            course_service,
-            grade_service,
-            deadline_service,
+            data_service,
         }
     }
 }
@@ -53,7 +39,7 @@ impl NotificationServiceInterface for NotificationService {
     async fn send_notifications<'a>(self: Arc<Self>, limit: i64, skip: &'a mut u64) -> Result<()> {
         let mut batch = Vec::new();
 
-        let mut cursor = self.token_service.find_all_tokens(limit, *skip).await?;
+        let mut cursor = self.data_service.find_all_tokens(limit, *skip).await?;
 
         let mut has_documents = false;
 
@@ -128,7 +114,7 @@ impl NotificationServiceInterface for NotificationService {
                         }
                     }
                 }
-                if let Err(e) = self_clone.token_service.fetch_and_save_data(token).await {
+                if let Err(e) = self_clone.data_service.fetch_and_save_data(token).await {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
                 drop(permit);
@@ -148,7 +134,7 @@ impl NotificationServiceInterface for NotificationService {
 
     async fn send_user_info(&self, token: &str, device_token: &str) -> Result<User> {
         let external_user = self.data_provider.get_user(token).await?;
-        let user = self.user_service.get_user(token).await?;
+        let user = self.data_service.get_user(token).await?;
         if !user.eq(&external_user) {
             let body = external_user.create_body_message_user();
             let message =
@@ -169,7 +155,7 @@ impl NotificationServiceInterface for NotificationService {
         user: &User,
     ) -> Result<Vec<Course>> {
         let external_courses = self.data_provider.get_courses(token, user.userid).await?;
-        let courses = self.course_service.get_courses(token).await?;
+        let courses = self.data_service.get_courses(token).await?;
         let new_courses = compare_courses(&external_courses, &courses);
 
         if !new_courses.is_empty() {
@@ -193,7 +179,7 @@ impl NotificationServiceInterface for NotificationService {
         courses: &[Course],
     ) -> Result<()> {
         for course in courses {
-            let deadlines = self.deadline_service.get_deadlines(token).await?;
+            let deadlines = self.data_service.get_deadlines(token).await?;
 
             let mut external_deadlines = self
                 .data_provider
@@ -244,7 +230,7 @@ impl NotificationServiceInterface for NotificationService {
                 external_grade.coursename = Option::from(course.fullname.clone());
             }
 
-            let mut grades = self.grade_service.get_grades(token).await?;
+            let mut grades = self.data_service.get_grades(token).await?;
             let new_grades = compare_grades(&mut external_grades, &mut grades);
 
             if !new_grades.is_empty() {
@@ -286,7 +272,7 @@ impl NotificationServiceInterface for NotificationService {
         }
         sort_grades_overview(&mut external_grades_overview.grades);
 
-        let mut grades_overview = self.grade_service.get_grades_overview(token).await?;
+        let mut grades_overview = self.data_service.get_grades_overview(token).await?;
         sort_grades_overview(&mut grades_overview);
 
         let new_external_grades =

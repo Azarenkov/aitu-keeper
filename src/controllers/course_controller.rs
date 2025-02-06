@@ -1,6 +1,5 @@
 use crate::controllers::shared::app_state::AppState;
 use crate::controllers::shared::handler_errors::handle_any_error;
-use crate::services::data_service_interfaces::CourseServiceInterface;
 use actix_web::{get, web, HttpResponse};
 
 pub fn course_routes(cfg: &mut web::ServiceConfig) {
