@@ -1,12 +1,13 @@
 use actix_web::web::Data;
 use actix_web::{guard, web, App, HttpResponse, HttpServer};
+use dotenv::dotenv;
 use fcm_rs::client::FcmClient;
 use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
 use std::sync::Arc;
-use std::time::Duration;
+// use std::time::Duration;
 
 mod controllers;
 mod infrastructure;
@@ -30,6 +31,7 @@ use infrastructure::client::moodle_client::MoodleClient;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // console_subscriber::init();
+    dotenv().ok();
     let app_state = setup().await?;
     let port = env::var("PORT").expect("You must set the PORT environment var!");
     let address = format!("0.0.0.0:{}", port);
@@ -101,7 +103,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
                     eprintln!("{}", e);
                 }
 
-                tokio::time::sleep(Duration::from_secs(2)).await;
+                // tokio::time::sleep(Duration::from_secs(2)).await;
             }
         }
     });
