@@ -113,10 +113,10 @@ impl NotificationServiceInterface for NotificationService {
                             eprintln!("Error sending user info: {:?}", e);
                         }
                     }
-                }
-                if let Err(e) = self_clone.data_service.fetch_and_save_data(token).await {
+                } else if let Err(e) = self_clone.data_service.fetch_and_save_data(token).await {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
+
                 drop(permit);
             });
 
@@ -144,6 +144,7 @@ impl NotificationServiceInterface for NotificationService {
             self.notification_provider
                 .send_notification(message)
                 .await?;
+            self.data_service.create_user(token).await?;
         }
         Ok(external_user)
     }
@@ -154,11 +155,14 @@ impl NotificationServiceInterface for NotificationService {
         device_token: &str,
         user: &User,
     ) -> Result<Vec<Course>> {
+        let mut flag = false;
         let external_courses = self.data_provider.get_courses(token, user.userid).await?;
         let courses = self.data_service.get_courses(token).await?;
         let new_courses = compare_courses(&external_courses, &courses);
 
         if !new_courses.is_empty() {
+            flag = true;
+
             for new_course in new_courses {
                 let body = new_course.fullname.clone();
                 let message =
@@ -169,6 +173,10 @@ impl NotificationServiceInterface for NotificationService {
                     .await?;
             }
         }
+
+        if flag {
+            self.data_service.update_courses(token, user).await?;
+        }
         Ok(external_courses)
     }
 
@@ -178,6 +186,7 @@ impl NotificationServiceInterface for NotificationService {
         device_token: &str,
         courses: &[Course],
     ) -> Result<()> {
+        let mut flag = false;
         for course in courses {
             let deadlines = self.data_service.get_deadlines(token).await?;
 
@@ -192,9 +201,10 @@ impl NotificationServiceInterface for NotificationService {
             }
 
             let sorted_deadlines = sort_deadlines(&mut external_deadlines)?;
-
             let new_deadlines = compare_deadlines(&sorted_deadlines, &deadlines);
+
             if !new_deadlines.is_empty() {
+                flag = true;
                 for new_deadline in new_deadlines {
                     let body = new_deadline.create_body_message_deadline();
                     let message = self.notification_provider.create_message(
@@ -208,6 +218,9 @@ impl NotificationServiceInterface for NotificationService {
                 }
             }
         }
+        if flag {
+            self.data_service.update_deadlines(token, courses).await?;
+        }
 
         Ok(())
     }
@@ -219,6 +232,7 @@ impl NotificationServiceInterface for NotificationService {
         user: &User,
         courses: &[Course],
     ) -> Result<()> {
+        let mut flag = false;
         for course in courses {
             let mut external_grades = self
                 .data_provider
@@ -234,6 +248,7 @@ impl NotificationServiceInterface for NotificationService {
             let new_grades = compare_grades(&mut external_grades, &mut grades);
 
             if !new_grades.is_empty() {
+                flag = true;
                 for new_grade in new_grades {
                     let title = course.fullname.clone();
                     let body = format!(
@@ -251,6 +266,11 @@ impl NotificationServiceInterface for NotificationService {
                 }
             }
         }
+        if flag {
+            self.data_service
+                .update_grades(token, user, courses)
+                .await?;
+        }
 
         Ok(())
     }
@@ -261,6 +281,7 @@ impl NotificationServiceInterface for NotificationService {
         device_token: &str,
         courses: &[Course],
     ) -> Result<()> {
+        let mut flag = false;
         let mut external_grades_overview = self.data_provider.get_grades_overview(token).await?;
 
         for external_grade_overview in external_grades_overview.grades.iter_mut() {
@@ -278,6 +299,7 @@ impl NotificationServiceInterface for NotificationService {
         let new_external_grades =
             compare_grades_overview(&external_grades_overview.grades, &grades_overview);
         if !new_external_grades.is_empty() {
+            flag = true;
             for new_external_grade in new_external_grades.iter() {
                 let title = new_external_grade
                     .course_name
@@ -291,6 +313,11 @@ impl NotificationServiceInterface for NotificationService {
                     .send_notification(message)
                     .await?
             }
+        }
+        if flag {
+            self.data_service
+                .update_grades_overview(token, courses)
+                .await?;
         }
 
         Ok(())
