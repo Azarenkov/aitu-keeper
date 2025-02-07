@@ -102,9 +102,8 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     tokio::spawn({
         async move {
             loop {
-                // println!("{}", skip);
+                println!("{}", skip);
                 if let Err(e) = notification_service
-                    // .clone()
                     .send_notifications(limit, &mut skip)
                     .await
                 {
