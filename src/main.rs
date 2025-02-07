@@ -60,9 +60,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
+    let sentry_url = env::var("SENTRY_URL").expect("You must set the SENTRY_URL environment var!");
     let mongo_uri = env::var("MONGODB_URI").expect("You must set the MONGODB_URI environment var!");
     let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
     let format_url = env::var("FORMAT_URL").expect("You must set the FORMAT_URL environment var!");
+
+    let _guard = sentry::init((
+        sentry_url,
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            ..Default::default()
+        },
+    ));
 
     let service_account_key =
         env::var("SERVICE_ACCOUNT_KEY").expect("SERVICE_ACCOUNT_KEY must be set");
