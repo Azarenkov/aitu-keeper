@@ -26,36 +26,38 @@ pub trait RepositoryInterfaces:
     + CourseRepositoryInterface
     + DeadlineRepositoryInterface
     + GradeRepositoryInterface
+    + Send
+    + Sync
 {
 }
 
 #[async_trait]
-pub trait TokenRepositoryInterface: Send + Sync {
+pub trait TokenRepositoryInterface {
     async fn save_tokens(&self, token: &Token) -> Result<()>;
     async fn find_all_device_tokens(&self, limit: i64, skip: u64) -> Result<Cursor<Document>>;
     async fn delete(&self, token: &str) -> Result<()>;
 }
 
 #[async_trait]
-pub trait UserRepositoryInterface: Send + Sync {
+pub trait UserRepositoryInterface {
     async fn find_user_by_token(&self, token: &str) -> Result<User>;
     async fn save_user(&self, user: &User, token: &str) -> Result<()>;
 }
 
 #[async_trait]
-pub trait CourseRepositoryInterface: Send + Sync {
+pub trait CourseRepositoryInterface {
     async fn save_courses(&self, token: &str, courses: &[Course]) -> Result<()>;
     async fn find_courses_by_token(&self, token: &str) -> Result<Vec<Course>>;
 }
 
 #[async_trait]
-pub trait DeadlineRepositoryInterface: Send + Sync {
+pub trait DeadlineRepositoryInterface {
     async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<()>;
     async fn find_deadlines_by_token(&self, token: &str) -> Result<Vec<Deadline>>;
 }
 
 #[async_trait]
-pub trait GradeRepositoryInterface: Send + Sync {
+pub trait GradeRepositoryInterface {
     async fn save_grades(&self, token: &str, grades: &[Grade]) -> Result<()>;
     async fn find_grades_by_token(&self, token: &str) -> Result<Vec<Grade>>;
     async fn save_grades_overview(

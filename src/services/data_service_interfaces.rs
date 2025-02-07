@@ -14,11 +14,13 @@ pub trait DataServiceInterfaces:
     + CourseServiceInterface
     + GradeServiceInterface
     + DeadlineServiceInterface
+    + Send
+    + Sync
 {
 }
 
 #[async_trait]
-pub trait TokenServiceInterface: Send + Sync {
+pub trait TokenServiceInterface {
     async fn create_token(&self, token: &Token) -> anyhow::Result<()>;
     async fn delete_one_user(&self, token: &str) -> anyhow::Result<()>;
     async fn find_all_tokens(&self, limit: i64, skip: u64) -> anyhow::Result<Cursor<Document>>;
@@ -26,19 +28,19 @@ pub trait TokenServiceInterface: Send + Sync {
 }
 
 #[async_trait]
-pub trait UserServiceInterface: Send + Sync {
+pub trait UserServiceInterface {
     async fn create_user(&self, token: &str) -> anyhow::Result<User>;
     async fn get_user(&self, token: &str) -> anyhow::Result<User>;
 }
 
 #[async_trait]
-pub trait CourseServiceInterface: Send + Sync {
+pub trait CourseServiceInterface {
     async fn get_courses(&self, token: &str) -> anyhow::Result<Vec<Course>>;
     async fn update_courses(&self, token: &str, user: &User) -> anyhow::Result<Vec<Course>>;
 }
 
 #[async_trait]
-pub trait GradeServiceInterface: Send + Sync {
+pub trait GradeServiceInterface {
     async fn get_grades(&self, token: &str) -> anyhow::Result<Vec<Grade>>;
     async fn update_grades(
         &self,
@@ -51,7 +53,7 @@ pub trait GradeServiceInterface: Send + Sync {
 }
 
 #[async_trait]
-pub trait DeadlineServiceInterface: Send + Sync {
+pub trait DeadlineServiceInterface {
     async fn get_deadlines(&self, token: &str) -> anyhow::Result<Vec<Deadline>>;
     async fn update_deadlines(&self, token: &str, courses: &[Course]) -> anyhow::Result<()>;
 }

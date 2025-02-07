@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 #[async_trait]
-pub trait NotificationServiceInterface: Send + Sync {
+pub trait NotificationServiceInterface {
     async fn send_notifications<'a>(
         self: Arc<Self>,
         limit: i64,

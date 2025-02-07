@@ -1,3 +1,4 @@
+/.idea
 /target
 /service_account_key.json
 /.env
