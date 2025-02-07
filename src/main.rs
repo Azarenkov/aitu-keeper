@@ -76,9 +76,9 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
         Arc::new(MoodleClient::new(base_url, format_url));
     let db = connect(&mongo_uri).await?.collection("users");
 
-    let data_repository: Arc<dyn RepositoryInterfaces> = Arc::new(DataRepository::new(db));
+    let data_repository: Box<dyn RepositoryInterfaces> = Box::new(DataRepository::new(db));
 
-    let data_service = DataService::new(Arc::clone(&moodle_client), Arc::clone(&data_repository));
+    let data_service = DataService::new(Arc::clone(&moodle_client), data_repository);
     let data_service: Arc<dyn DataServiceInterfaces> = Arc::new(data_service);
 
     let fcm_client = FcmClient::new("service_account_key.json").await?;
@@ -86,8 +86,6 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
 
     let notification_service =
         NotificationService::new(fcm, moodle_client, Arc::clone(&data_service));
-
-    let notification_service = Arc::new(notification_service);
 
     let limit = 100;
     let mut skip = 0;
@@ -97,7 +95,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
             loop {
                 // println!("{}", skip);
                 if let Err(e) = notification_service
-                    .clone()
+                    // .clone()
                     .send_notifications(limit, &mut skip)
                     .await
                 {

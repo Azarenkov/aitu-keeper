@@ -14,6 +14,7 @@ use tokio::task;
 
 use super::data_service_interfaces::DataServiceInterfaces;
 
+#[derive(Clone)]
 pub struct NotificationService {
     notification_provider: Arc<dyn NotificationProviderInterface>,
     data_provider: Arc<dyn DataProviderInterface>,
@@ -36,7 +37,7 @@ impl NotificationService {
 
 #[async_trait]
 impl NotificationServiceInterface for NotificationService {
-    async fn send_notifications<'a>(self: Arc<Self>, limit: i64, skip: &'a mut u64) -> Result<()> {
+    async fn send_notifications<'a>(&self, limit: i64, skip: &'a mut u64) -> Result<()> {
         let mut batch = Vec::new();
 
         let mut cursor = self.data_service.find_all_tokens(limit, *skip).await?;
@@ -64,44 +65,44 @@ impl NotificationServiceInterface for NotificationService {
             return Ok(());
         }
 
-        if let Err(e) = self.clone().process_batch(&batch).await {
+        if let Err(e) = self.process_batch(&batch).await {
             eprintln!("Error processing batch: {}", e);
         }
         Ok(())
     }
 
-    async fn process_batch(self: Arc<Self>, batch: &[Token]) -> Result<()> {
+    async fn process_batch(&self, batch: &[Token]) -> Result<()> {
         let semaphore = Arc::new(Semaphore::new(10));
+        let self_arc = Arc::new(self.clone());
 
         let mut handles = Vec::new();
 
         for tokens in batch.iter() {
-            let self_clone = self.clone();
             let tokens = tokens.clone();
             let permit = semaphore.clone().acquire_owned().await?;
+            let self_arc = Arc::clone(&self_arc);
 
             let handle = task::spawn(async move {
                 let token = &tokens.token;
 
                 if let Some(device_token) = &tokens.device_token {
-                    match self_clone.send_user_info(token, device_token).await {
+                    match self_arc.send_user_info(token, device_token).await {
                         Ok(user) => {
                             if let Ok(courses) =
-                                self_clone.send_course(token, device_token, &user).await
+                                self_arc.send_course(token, device_token, &user).await
                             {
-                                if let Err(e) = self_clone
-                                    .send_deadline(token, device_token, &courses)
-                                    .await
+                                if let Err(e) =
+                                    self_arc.send_deadline(token, device_token, &courses).await
                                 {
                                     eprintln!("Error sending deadline: {:?}", e);
                                 }
-                                if let Err(e) = self_clone
+                                if let Err(e) = self_arc
                                     .send_grade(token, device_token, &user, &courses)
                                     .await
                                 {
                                     eprintln!("Error sending grade: {:?}", e);
                                 }
-                                if let Err(e) = self_clone
+                                if let Err(e) = self_arc
                                     .send_grade_overview(token, device_token, &courses)
                                     .await
                                 {
@@ -113,7 +114,7 @@ impl NotificationServiceInterface for NotificationService {
                             eprintln!("Error sending user info: {:?}", e);
                         }
                     }
-                } else if let Err(e) = self_clone.data_service.fetch_and_save_data(token).await {
+                } else if let Err(e) = self_arc.data_service.fetch_and_save_data(token).await {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
 

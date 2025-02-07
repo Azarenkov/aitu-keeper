@@ -2,16 +2,11 @@ use crate::models::course::Course;
 use crate::models::token::Token;
 use crate::models::user::User;
 use async_trait::async_trait;
-use std::sync::Arc;
 
 #[async_trait]
 pub trait NotificationServiceInterface {
-    async fn send_notifications<'a>(
-        self: Arc<Self>,
-        limit: i64,
-        skip: &'a mut u64,
-    ) -> anyhow::Result<()>;
-    async fn process_batch(self: Arc<Self>, batch: &[Token]) -> anyhow::Result<()>;
+    async fn send_notifications<'a>(&self, limit: i64, skip: &'a mut u64) -> anyhow::Result<()>;
+    async fn process_batch(&self, batch: &[Token]) -> anyhow::Result<()>;
     async fn send_user_info(&self, token: &str, device_token: &str) -> anyhow::Result<User>;
     async fn send_course(
         &self,

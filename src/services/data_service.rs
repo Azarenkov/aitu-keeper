@@ -70,13 +70,13 @@ pub trait GradeRepositoryInterface {
 
 pub struct DataService {
     data_provider: Arc<dyn DataProviderInterface>,
-    data_repositories: Arc<dyn RepositoryInterfaces>,
+    data_repositories: Box<dyn RepositoryInterfaces>,
 }
 
 impl DataService {
     pub fn new(
         data_provider: Arc<dyn DataProviderInterface>,
-        data_repositories: Arc<dyn RepositoryInterfaces>,
+        data_repositories: Box<dyn RepositoryInterfaces>,
     ) -> Self {
         Self {
             data_provider,
