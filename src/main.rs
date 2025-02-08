@@ -31,27 +31,12 @@ use crate::services::notification_service::NotificationService;
 use crate::services::notification_service_interfaces::NotificationServiceInterface;
 use controllers::shared::app_state::AppState;
 use infrastructure::client::moodle_client::MoodleClient;
-use tracing_subscriber::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // console_subscriber::init();
 
     dotenv().ok();
-    let sentry_url = env::var("SENTRY_URL").expect("You must set the SENTRY_URL environment var!");
-
-    tracing_subscriber::Registry::default()
-        .with(sentry::integrations::tracing::layer())
-        .init();
-
-    let _guard = sentry::init((
-        sentry_url,
-        sentry::ClientOptions {
-            release: sentry::release_name!(),
-            traces_sample_rate: 0.2,
-            ..Default::default()
-        },
-    ));
 
     let app_state = setup().await?;
     let port = env::var("PORT").expect("You must set the PORT environment var!");
@@ -59,7 +44,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(sentry_actix::Sentry::new())
             .app_data(app_state.clone())
             .configure(user_routes)
             .configure(course_routes)
@@ -111,7 +95,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     tokio::spawn({
         async move {
             loop {
-                // println!("{}", skip);
+                println!("{}", skip);
                 if let Err(e) = notification_service
                     .send_notifications(limit, &mut skip)
                     .await
