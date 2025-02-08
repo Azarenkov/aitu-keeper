@@ -207,6 +207,7 @@ impl NotificationServiceInterface for NotificationService {
             if !new_deadlines.is_empty() {
                 flag = true;
                 for new_deadline in new_deadlines {
+                    println!("{:?}", new_deadline);
                     let body = new_deadline.create_body_message_deadline();
                     let message = self.notification_provider.create_message(
                         device_token,
