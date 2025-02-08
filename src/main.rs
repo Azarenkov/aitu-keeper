@@ -31,6 +31,7 @@ use crate::services::notification_service::NotificationService;
 use crate::services::notification_service_interfaces::NotificationServiceInterface;
 use controllers::shared::app_state::AppState;
 use infrastructure::client::moodle_client::MoodleClient;
+use tracing_subscriber::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -39,10 +40,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
     let sentry_url = env::var("SENTRY_URL").expect("You must set the SENTRY_URL environment var!");
 
+    tracing_subscriber::Registry::default()
+        .with(sentry::integrations::tracing::layer())
+        .init();
+
     let _guard = sentry::init((
         sentry_url,
         sentry::ClientOptions {
             release: sentry::release_name!(),
+            traces_sample_rate: 0.2,
             ..Default::default()
         },
     ));
