@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::Result;
 use chrono::Timelike;
 use chrono::{NaiveTime, Utc};
@@ -11,6 +13,7 @@ pub struct Events {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Deadline {
+    pub id: i32,
     pub name: String,
     pub timeusermidnight: i64,
     pub formattedtime: String,
@@ -91,21 +94,12 @@ pub fn compare_deadlines<'a>(
     external_deadlines: &'a [Deadline],
     deadlines: &[Deadline],
 ) -> Vec<&'a Deadline> {
-    let mut new_deadlines = Vec::new();
-    for external_deadline in external_deadlines {
-        if !deadlines.contains(external_deadline) {
-            let course_name = deadlines
-                .iter()
-                .find(|dealine| dealine.coursename == external_deadline.coursename);
-            if let Some(_course_name) = course_name {
-                new_deadlines.push(external_deadline);
-            } else {
-                new_deadlines.push(external_deadline);
-            }
-        }
-    }
+    let existing_ids: HashSet<i32> = deadlines.iter().map(|d| d.id).collect();
 
-    new_deadlines
+    external_deadlines
+        .iter()
+        .filter(|d| !existing_ids.contains(&d.id))
+        .collect()
 }
 
 #[cfg(test)]
@@ -148,6 +142,7 @@ mod tests {
     #[test]
     fn test_compare_deadlines_new_deadline() {
         let external_deadlines = vec![Deadline {
+            id: 2,
             name: "Test Deadline".to_string(),
             timeusermidnight: 1678886400,
             formattedtime: "2024-02-01 12:00".to_string(),
@@ -159,8 +154,9 @@ mod tests {
     }
 
     #[test]
-    fn test_compare_deadlines_existing_deadline() {
+    fn test_compare_deadlines_existing_deadline_by_id() {
         let external_deadlines = vec![Deadline {
+            id: 1,
             name: "Test Deadline".to_string(),
             timeusermidnight: 1678886400,
             formattedtime: "2024-02-01 12:00".to_string(),
@@ -168,10 +164,11 @@ mod tests {
         }];
 
         let deadlines = vec![Deadline {
-            name: "Test Deadline".to_string(),
+            id: 1,
+            name: "Deadline".to_string(),
             timeusermidnight: 1678886400,
-            formattedtime: "2024-02-01 12:00".to_string(),
-            coursename: Some("Math".to_string()),
+            formattedtime: "2024".to_string(),
+            coursename: Some("Chemistry".to_string()),
         }];
         let result = compare_deadlines(&external_deadlines, &deadlines);
         assert!(result.is_empty());
@@ -188,6 +185,7 @@ mod tests {
     #[test]
     fn test_sort_deadlines_past_deadline() -> Result<()> {
         let mut deadlines = vec![Deadline {
+            id: 1,
             name: "Past Deadline".to_string(),
             timeusermidnight: 1678886400,
             formattedtime: "<a href=\"some link\">Some Date</a>, 12:00".to_string(),

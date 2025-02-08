@@ -79,7 +79,6 @@ mod tests {
             enddate: 0,
         }];
         let result = compare_courses(&external_courses, &courses);
-        println!("{:?}", result);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].id, 2);
         assert_eq!(result[0].fullname, "Physics");
