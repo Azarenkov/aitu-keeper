@@ -1,5 +1,6 @@
 use crate::models::course::{compare_courses, Course};
 use crate::models::deadline::{compare_deadlines, sort_deadlines};
+use crate::models::errors::ApiError;
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
 use crate::models::token::Token;
 use crate::models::user::User;
@@ -92,6 +93,12 @@ impl NotificationServiceInterface for NotificationService {
                                 self_arc.send_course(token, device_token, &user).await
                             {
                                 if let Err(e) = self_arc
+                                    .send_grade(token, device_token, &user, &courses)
+                                    .await
+                                {
+                                    eprintln!("Error sending grade: {:?}", e);
+                                }
+                                if let Err(e) = self_arc
                                     .send_grade_overview(token, device_token, &courses)
                                     .await
                                 {
@@ -102,12 +109,6 @@ impl NotificationServiceInterface for NotificationService {
                                     self_arc.send_deadline(token, device_token, &courses).await
                                 {
                                     eprintln!("Error sending deadline: {:?}", e);
-                                }
-                                if let Err(e) = self_arc
-                                    .send_grade(token, device_token, &user, &courses)
-                                    .await
-                                {
-                                    eprintln!("Error sending grade: {:?}", e);
                                 }
                             }
                         }
@@ -190,13 +191,25 @@ impl NotificationServiceInterface for NotificationService {
     ) -> Result<()> {
         let mut flag = false;
         for course in courses {
-            let deadlines = self.data_service.get_deadlines(token).await?;
+            let deadlines = match self.data_service.get_deadlines(token).await {
+                Ok(deadlines) => deadlines,
+                Err(e) => match e.downcast_ref::<ApiError>() {
+                    Some(ApiError::DeadlinesAreEmpty) => {
+                        vec![]
+                    }
+                    _ => return Err(e),
+                },
+            };
 
             let mut external_deadlines = self
                 .data_provider
                 .get_deadline_by_course_id(token, course.id)
                 .await?
                 .events;
+
+            if external_deadlines.is_empty() {
+                continue;
+            };
 
             for sorted_deadline in external_deadlines.iter_mut() {
                 sorted_deadline.coursename = Option::from(course.fullname.clone());
@@ -208,7 +221,6 @@ impl NotificationServiceInterface for NotificationService {
             if !new_deadlines.is_empty() {
                 flag = true;
                 for new_deadline in new_deadlines {
-                    println!("{:?}", new_deadline);
                     let body = new_deadline.create_body_message_deadline();
                     let message = self.notification_provider.create_message(
                         device_token,

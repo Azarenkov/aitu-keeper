@@ -134,7 +134,13 @@ mod tests {
     #[test]
     fn test_compare_deadlines_empty() {
         let external_deadlines = vec![];
-        let deadlines = vec![];
+        let deadlines = vec![Deadline {
+            id: 2,
+            name: "Test Deadline".to_string(),
+            timeusermidnight: 1678886400,
+            formattedtime: "2024-02-01 12:00".to_string(),
+            coursename: Some("Math".to_string()),
+        }];
         let result = compare_deadlines(&external_deadlines, &deadlines);
         assert!(result.is_empty());
     }
