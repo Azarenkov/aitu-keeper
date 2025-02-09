@@ -88,9 +88,16 @@ impl NotificationServiceInterface for NotificationService {
                 if let Some(device_token) = &tokens.device_token {
                     match self_arc.send_user_info(token, device_token).await {
                         Ok(user) => {
-                            if let Ok(courses) =
+                            if let Ok(mut courses) =
                                 self_arc.send_course(token, device_token, &user).await
                             {
+                                if let Err(e) = self_arc
+                                    .send_grade_overview(token, device_token, &courses)
+                                    .await
+                                {
+                                    eprintln!("Error sending grade overview: {:?}", e);
+                                }
+                                Course::delete_past_courses(&mut courses);
                                 if let Err(e) =
                                     self_arc.send_deadline(token, device_token, &courses).await
                                 {
@@ -101,12 +108,6 @@ impl NotificationServiceInterface for NotificationService {
                                     .await
                                 {
                                     eprintln!("Error sending grade: {:?}", e);
-                                }
-                                if let Err(e) = self_arc
-                                    .send_grade_overview(token, device_token, &courses)
-                                    .await
-                                {
-                                    eprintln!("Error sending grade overview: {:?}", e);
                                 }
                             }
                         }
