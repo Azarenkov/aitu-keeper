@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::models::course::Course;
 use crate::models::deadline::Events;
 use crate::models::grade::{GradesOverview, UserGrades};
@@ -15,7 +17,10 @@ pub struct MoodleClient {
 impl MoodleClient {
     pub fn new(base_url: String, format: String) -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder()
+                .timeout(Duration::from_secs(15))
+                .build()
+                .unwrap(),
             base_url,
             format,
         }

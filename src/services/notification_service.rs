@@ -10,7 +10,7 @@ use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
-use tokio::sync::Semaphore;
+// use tokio::sync::Semaphore;
 use tokio::task;
 
 use super::data_service_interfaces::DataServiceInterfaces;
@@ -73,14 +73,14 @@ impl NotificationServiceInterface for NotificationService {
     }
 
     async fn process_batch(&self, batch: &[Token]) -> Result<()> {
-        let semaphore = Arc::new(Semaphore::new(20));
+        // let semaphore = Arc::new(Semaphore::new(20));
         let self_arc = Arc::new(self.clone());
 
         let mut handles = Vec::new();
 
         for tokens in batch.iter() {
             let tokens = tokens.clone();
-            let permit = semaphore.clone().acquire_owned().await?;
+            // let permit = semaphore.clone().acquire_owned().await?;
             let self_arc = Arc::clone(&self_arc);
 
             let handle = task::spawn(async move {
@@ -120,7 +120,7 @@ impl NotificationServiceInterface for NotificationService {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
 
-                drop(permit);
+                // drop(permit);
             });
 
             handles.push(handle);
