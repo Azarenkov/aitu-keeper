@@ -22,7 +22,12 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
                 .await
             {
                 Ok(_) => HttpResponse::Ok().json("User was created"),
-                Err(e) => handle_any_error(&e),
+                Err(e) => {
+                    if let Err(e) = app_state.data_service.delete_one_user(&token.token).await {
+                        eprintln!("{}", e);
+                    };
+                    handle_any_error(&e)
+                }
             }
         }
         Err(e) => handle_any_error(&e),
