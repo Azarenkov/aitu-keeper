@@ -10,11 +10,11 @@ use crate::services::data_service_interfaces::GradeServiceInterface;
 use crate::services::data_service_interfaces::TokenServiceInterface;
 use crate::services::data_service_interfaces::UserServiceInterface;
 use crate::services::provider_interfaces::DataProviderInterface;
-use anyhow::Error;
-use anyhow::Result;
+use anyhow::{Error, Result};
 use async_trait::async_trait;
 use mongodb::bson::Document;
 use mongodb::Cursor;
+use std::result::Result::Ok;
 use std::sync::Arc;
 
 use super::data_service_interfaces::DataServiceInterfaces;
@@ -33,6 +33,7 @@ pub trait RepositoryInterfaces:
 
 #[async_trait]
 pub trait TokenRepositoryInterface {
+    async fn find_token(&self, token: &Token) -> Result<()>;
     async fn save_tokens(&self, token: &Token) -> Result<()>;
     async fn find_all_device_tokens(&self, limit: i64, skip: u64) -> Result<Cursor<Document>>;
     async fn delete(&self, token: &str) -> Result<()>;
@@ -89,21 +90,6 @@ impl DataServiceInterfaces for DataService {}
 
 #[async_trait]
 impl TokenServiceInterface for DataService {
-    async fn create_token(&self, token: &Token) -> Result<()> {
-        match self.data_provider.valid_token(&token.token).await {
-            Ok(_) => {}
-            Err(_) => return Err(Error::new(ApiError::InvalidToken)),
-        };
-
-        match self.data_repositories.save_tokens(token).await {
-            Ok(_) => Ok(()),
-            Err(e) => match e.downcast_ref::<ApiError>() {
-                Some(ApiError::UserAlreadyExists) => Err(Error::new(ApiError::UserAlreadyExists)),
-                _ => Err(Error::new(ApiError::InternalServerError)),
-            },
-        }
-    }
-
     async fn delete_one_user(&self, token: &str) -> Result<()> {
         self.data_repositories.delete(token).await
     }
@@ -114,19 +100,61 @@ impl TokenServiceInterface for DataService {
             .await
     }
 
-    async fn fetch_and_save_data(&self, token: &str) -> Result<()> {
-        let user = self.create_user(token).await?;
+    async fn fetch_and_update_data(&self, token: &str) -> Result<()> {
+        let user = self.update_user(token).await?;
         let courses = self.update_courses(token, &user).await?;
         self.update_grades(token, &user, &courses).await?;
         self.update_grades_overview(token, &courses).await?;
         self.update_deadlines(token, &courses).await?;
         Ok(())
     }
+
+    async fn register_user(&self, tokens: &Token) -> anyhow::Result<()> {
+        self.data_provider
+            .valid_token(&tokens.token)
+            .await
+            .map_err(|_| Error::new(ApiError::InvalidToken))?;
+
+        self.data_repositories.find_token(tokens).await?;
+
+        let user = self.data_provider.get_user(&tokens.token).await?;
+        let courses = self
+            .data_provider
+            .get_courses(&tokens.token, user.userid)
+            .await?;
+        let grades = self.fetch_grades(&tokens.token, &user, &courses).await?;
+        let deadlines = self.fetch_deadlines(&tokens.token, &courses).await?;
+        let grades_overview = self.fetch_grades_overview(&tokens.token, &courses).await?;
+
+        self.data_repositories.save_tokens(tokens).await?;
+
+        self.data_repositories
+            .save_user(&user, &tokens.token)
+            .await?;
+
+        self.data_repositories
+            .save_courses(&tokens.token, &courses)
+            .await?;
+
+        self.data_repositories
+            .save_grades(&tokens.token, &grades)
+            .await?;
+
+        self.data_repositories
+            .save_grades_overview(&tokens.token, &grades_overview)
+            .await?;
+
+        self.data_repositories
+            .save_deadlines(&tokens.token, &deadlines)
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
 impl UserServiceInterface for DataService {
-    async fn create_user(&self, token: &str) -> Result<User> {
+    async fn update_user(&self, token: &str) -> Result<User> {
         match self.data_provider.get_user(token).await {
             Ok(user) => {
                 self.data_repositories.save_user(&user, token).await?;
@@ -160,7 +188,12 @@ impl GradeServiceInterface for DataService {
         self.data_repositories.find_grades_by_token(token).await
     }
 
-    async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> Result<()> {
+    async fn fetch_grades(
+        &self,
+        token: &str,
+        user: &User,
+        courses: &[Course],
+    ) -> Result<Vec<Grade>> {
         let mut grades = Vec::new();
 
         for course in courses {
@@ -174,6 +207,11 @@ impl GradeServiceInterface for DataService {
                 grades.push(grade);
             }
         }
+        Ok(grades)
+    }
+
+    async fn update_grades(&self, token: &str, user: &User, courses: &[Course]) -> Result<()> {
+        let grades = self.fetch_grades(token, user, courses).await?;
 
         self.data_repositories.save_grades(token, &grades).await?;
         Ok(())
@@ -185,7 +223,11 @@ impl GradeServiceInterface for DataService {
             .await
     }
 
-    async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> Result<()> {
+    async fn fetch_grades_overview(
+        &self,
+        token: &str,
+        courses: &[Course],
+    ) -> Result<GradesOverview> {
         let mut grades_overview = self.data_provider.get_grades_overview(token).await?;
 
         for grade_overview in grades_overview.grades.iter_mut() {
@@ -197,6 +239,11 @@ impl GradeServiceInterface for DataService {
             }
         }
         sort_grades_overview(&mut grades_overview.grades);
+        Ok(grades_overview)
+    }
+
+    async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> Result<()> {
+        let grades_overview = self.fetch_grades_overview(token, courses).await?;
         self.data_repositories
             .save_grades_overview(token, &grades_overview)
             .await?;
@@ -210,7 +257,7 @@ impl DeadlineServiceInterface for DataService {
         self.data_repositories.find_deadlines_by_token(token).await
     }
 
-    async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<()> {
+    async fn fetch_deadlines(&self, token: &str, courses: &[Course]) -> Result<Vec<Deadline>> {
         let mut deadlines = Vec::new();
 
         for course in courses {
@@ -225,8 +272,13 @@ impl DeadlineServiceInterface for DataService {
             }
         }
         let sorted_deadlines = sort_deadlines(&mut deadlines)?;
+        Ok(sorted_deadlines)
+    }
+
+    async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<()> {
+        let deadlines = self.fetch_deadlines(token, courses).await?;
         self.data_repositories
-            .save_deadlines(token, &sorted_deadlines)
+            .save_deadlines(token, &deadlines)
             .await?;
         Ok(())
     }

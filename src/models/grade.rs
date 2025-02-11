@@ -8,8 +8,8 @@ pub struct UserGrades {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Grade {
     pub coursename: Option<String>,
-    courseid: i64,
-    gradeitems: Vec<GradeItems>,
+    pub courseid: i64,
+    pub gradeitems: Vec<GradeItems>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]

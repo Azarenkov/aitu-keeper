@@ -8,7 +8,7 @@ use crate::services::data_service::{
     CourseRepositoryInterface, DeadlineRepositoryInterface, GradeRepositoryInterface,
     RepositoryInterfaces, TokenRepositoryInterface, UserRepositoryInterface,
 };
-use anyhow::{Error, Result};
+use anyhow::{Error, Ok, Result};
 use async_trait::async_trait;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::{bson, Collection, Cursor};
@@ -28,13 +28,16 @@ impl RepositoryInterfaces for DataRepository {}
 
 #[async_trait]
 impl TokenRepositoryInterface for DataRepository {
-    async fn save_tokens(&self, token: &Token) -> Result<()> {
-        let doc = doc! {"_id": &token.token, "device_token": &token.device_token };
+    async fn find_token(&self, token: &Token) -> Result<()> {
         let existing_token = self.collection.find_one(doc! {"_id": &token.token}).await?;
-
         if existing_token.is_some() {
             return Err(Error::new(ApiError::UserAlreadyExists));
         }
+        Ok(())
+    }
+    async fn save_tokens(&self, token: &Token) -> Result<()> {
+        let doc = doc! {"_id": &token.token, "device_token": &token.device_token };
+        self.find_token(token).await?;
 
         self.collection.insert_one(doc).await?;
         Ok(())

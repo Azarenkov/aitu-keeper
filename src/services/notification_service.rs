@@ -116,7 +116,7 @@ impl NotificationServiceInterface for NotificationService {
                             eprintln!("Error sending user info: {:?}", e);
                         }
                     }
-                } else if let Err(e) = self_arc.data_service.fetch_and_save_data(token).await {
+                } else if let Err(e) = self_arc.data_service.fetch_and_update_data(token).await {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
 
@@ -147,7 +147,7 @@ impl NotificationServiceInterface for NotificationService {
             self.notification_provider
                 .send_notification(message)
                 .await?;
-            self.data_service.create_user(token).await?;
+            self.data_service.update_user(token).await?;
         }
         Ok(external_user)
     }
@@ -233,6 +233,7 @@ impl NotificationServiceInterface for NotificationService {
                 }
             }
         }
+
         if flag {
             self.data_service.update_deadlines(token, courses).await?;
         }
@@ -248,6 +249,18 @@ impl NotificationServiceInterface for NotificationService {
         courses: &[Course],
     ) -> Result<()> {
         let mut flag = false;
+        let past_grades = self.data_service.get_grades(token).await?;
+
+        let all_courses_in_grades = courses
+            .iter()
+            .all(|course| past_grades.iter().any(|grade| grade.courseid == course.id));
+
+        if !all_courses_in_grades {
+            self.data_service
+                .update_grades(token, user, courses)
+                .await?;
+        }
+
         for course in courses {
             let mut external_grades = self
                 .data_provider
@@ -260,6 +273,19 @@ impl NotificationServiceInterface for NotificationService {
             }
 
             let mut grades = self.data_service.get_grades(token).await?;
+
+            for external_grade in external_grades.iter() {
+                for grade in grades.iter() {
+                    if external_grade.courseid == grade.courseid
+                        && external_grade.gradeitems.len() != grade.gradeitems.len()
+                    {
+                        self.data_service
+                            .update_grades(token, user, courses)
+                            .await?;
+                    }
+                }
+            }
+
             let new_grades = compare_grades(&mut external_grades, &mut grades);
 
             if !new_grades.is_empty() {

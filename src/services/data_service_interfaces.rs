@@ -1,6 +1,6 @@
 use crate::models::course::Course;
 use crate::models::deadline::Deadline;
-use crate::models::grade::{Grade, GradeOverview};
+use crate::models::grade::{Grade, GradeOverview, GradesOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
 use async_trait::async_trait;
@@ -21,15 +21,15 @@ pub trait DataServiceInterfaces:
 
 #[async_trait]
 pub trait TokenServiceInterface {
-    async fn create_token(&self, token: &Token) -> anyhow::Result<()>;
     async fn delete_one_user(&self, token: &str) -> anyhow::Result<()>;
     async fn find_all_tokens(&self, limit: i64, skip: u64) -> anyhow::Result<Cursor<Document>>;
-    async fn fetch_and_save_data(&self, token: &str) -> anyhow::Result<()>;
+    async fn fetch_and_update_data(&self, token: &str) -> anyhow::Result<()>;
+    async fn register_user(&self, tokens: &Token) -> anyhow::Result<()>;
 }
 
 #[async_trait]
 pub trait UserServiceInterface {
-    async fn create_user(&self, token: &str) -> anyhow::Result<User>;
+    async fn update_user(&self, token: &str) -> anyhow::Result<User>;
     async fn get_user(&self, token: &str) -> anyhow::Result<User>;
 }
 
@@ -42,6 +42,12 @@ pub trait CourseServiceInterface {
 #[async_trait]
 pub trait GradeServiceInterface {
     async fn get_grades(&self, token: &str) -> anyhow::Result<Vec<Grade>>;
+    async fn fetch_grades(
+        &self,
+        token: &str,
+        user: &User,
+        courses: &[Course],
+    ) -> anyhow::Result<Vec<Grade>>;
     async fn update_grades(
         &self,
         token: &str,
@@ -49,11 +55,21 @@ pub trait GradeServiceInterface {
         courses: &[Course],
     ) -> anyhow::Result<()>;
     async fn get_grades_overview(&self, token: &str) -> anyhow::Result<Vec<GradeOverview>>;
+    async fn fetch_grades_overview(
+        &self,
+        token: &str,
+        courses: &[Course],
+    ) -> anyhow::Result<GradesOverview>;
     async fn update_grades_overview(&self, token: &str, courses: &[Course]) -> anyhow::Result<()>;
 }
 
 #[async_trait]
 pub trait DeadlineServiceInterface {
     async fn get_deadlines(&self, token: &str) -> anyhow::Result<Vec<Deadline>>;
+    async fn fetch_deadlines(
+        &self,
+        token: &str,
+        courses: &[Course],
+    ) -> anyhow::Result<Vec<Deadline>>;
     async fn update_deadlines(&self, token: &str, courses: &[Course]) -> anyhow::Result<()>;
 }

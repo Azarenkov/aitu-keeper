@@ -14,22 +14,8 @@ pub fn user_routes(cfg: &mut web::ServiceConfig) {
 
 #[post("/create_user")]
 async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) -> HttpResponse {
-    match app_state.data_service.create_token(&token).await {
-        Ok(_) => {
-            match app_state
-                .data_service
-                .fetch_and_save_data(&token.token)
-                .await
-            {
-                Ok(_) => HttpResponse::Ok().json("User was created"),
-                Err(e) => {
-                    if let Err(e) = app_state.data_service.delete_one_user(&token.token).await {
-                        eprintln!("{}", e);
-                    };
-                    handle_any_error(&e)
-                }
-            }
-        }
+    match app_state.data_service.register_user(&token).await {
+        Ok(_) => HttpResponse::Ok().json("User was created"),
         Err(e) => handle_any_error(&e),
     }
 }
