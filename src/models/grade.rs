@@ -72,7 +72,8 @@ pub fn compare_grades<'a>(
 }
 
 pub fn sort_grades_overview(grades_overview: &mut Vec<GradeOverview>) {
-    grades_overview.retain(|grade_overview| grade_overview.grade != "0.00");
+    grades_overview
+        .retain(|grade_overview| grade_overview.grade != "0.00" && grade_overview.grade != "0,00");
 }
 
 pub fn compare_grades_overview<'a>(

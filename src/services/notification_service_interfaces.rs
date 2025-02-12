@@ -5,7 +5,7 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait NotificationServiceInterface {
-    async fn send_notifications<'a>(&self, limit: i64, skip: &'a mut u64) -> anyhow::Result<()>;
+    async fn get_batches<'a>(&self, limit: i64, skip: &'a mut u64) -> anyhow::Result<()>;
     async fn process_batch(&self, batch: &[Token]) -> anyhow::Result<()>;
     async fn send_user_info(&self, token: &str, device_token: &str) -> anyhow::Result<User>;
     async fn send_course(

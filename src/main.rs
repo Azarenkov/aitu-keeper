@@ -89,7 +89,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     let notification_service =
         NotificationService::new(fcm, moodle_client, Arc::clone(&data_service));
 
-    let limit = 100;
+    let limit_batch_size = 100;
     let mut skip = 0;
 
     tokio::spawn({
@@ -97,7 +97,7 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
             loop {
                 // println!("{}", skip);
                 if let Err(e) = notification_service
-                    .send_notifications(limit, &mut skip)
+                    .get_batches(limit_batch_size, &mut skip)
                     .await
                 {
                     eprintln!("Error in sending notifications: {}", e);
