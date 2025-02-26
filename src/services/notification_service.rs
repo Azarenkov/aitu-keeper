@@ -2,10 +2,11 @@ use crate::models::course::{compare_courses, Course};
 use crate::models::deadline::{compare_deadlines, sort_deadlines};
 use crate::models::errors::ApiError;
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
+use crate::models::notification::Notification;
 use crate::models::token::Token;
 use crate::models::user::User;
 use crate::services::notification_service_interfaces::NotificationServiceInterface;
-use crate::services::provider_interfaces::{DataProviderInterface, NotificationProviderInterface};
+use crate::services::provider_interfaces::DataProviderInterface;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::TryStreamExt;
@@ -15,22 +16,23 @@ use tokio::sync::Semaphore;
 use tokio::task;
 
 use super::data_service_interfaces::DataServiceInterfaces;
+use super::event_producer_interface::EventProducerInterface;
 
 #[derive(Clone)]
 pub struct NotificationService {
-    notification_provider: Arc<dyn NotificationProviderInterface>,
+    producer: Arc<dyn EventProducerInterface>,
     data_provider: Arc<dyn DataProviderInterface>,
     data_service: Arc<dyn DataServiceInterfaces>,
 }
 
 impl NotificationService {
     pub fn new(
-        notification_provider: Arc<dyn NotificationProviderInterface>,
+        producer: Arc<dyn EventProducerInterface>,
         data_provider: Arc<dyn DataProviderInterface>,
         data_service: Arc<dyn DataServiceInterfaces>,
     ) -> Self {
         Self {
-            notification_provider,
+            producer,
             data_provider,
             data_service,
         }
@@ -141,13 +143,10 @@ impl NotificationServiceInterface for NotificationService {
         let user = self.data_service.get_user(token).await?;
         if !user.eq(&external_user) {
             let body = external_user.create_body_message_user();
-            let message =
-                self.notification_provider
-                    .create_message(device_token, "New user info", &body);
+            let notification =
+                Notification::new(device_token.to_string(), "New user info".to_string(), body);
+            self.producer.produce_notification(&notification).await;
 
-            self.notification_provider
-                .send_notification(message)
-                .await?;
             self.data_service.update_user(token).await?;
         }
         Ok(external_user)
@@ -169,12 +168,9 @@ impl NotificationServiceInterface for NotificationService {
 
             for new_course in new_courses {
                 let body = new_course.fullname.clone();
-                let message =
-                    self.notification_provider
-                        .create_message(device_token, "New course", &body);
-                self.notification_provider
-                    .send_notification(message)
-                    .await?;
+                let notification =
+                    Notification::new(device_token.to_string(), "New course".to_string(), body);
+                self.producer.produce_notification(&notification).await;
             }
         }
 
@@ -223,14 +219,12 @@ impl NotificationServiceInterface for NotificationService {
                 flag = true;
                 for new_deadline in new_deadlines {
                     let body = new_deadline.create_body_message_deadline();
-                    let message = self.notification_provider.create_message(
-                        device_token,
-                        "New deadline",
-                        &body,
+                    let notification = Notification::new(
+                        device_token.to_string(),
+                        "New deadline".to_string(),
+                        body,
                     );
-                    self.notification_provider
-                        .send_notification(message)
-                        .await?
+                    self.producer.produce_notification(&notification).await;
                 }
             }
         }
@@ -299,12 +293,8 @@ impl NotificationServiceInterface for NotificationService {
                         new_grade.1.percentageformatted,
                         new_grade.0.percentageformatted
                     );
-                    let message =
-                        self.notification_provider
-                            .create_message(device_token, &title, &body);
-                    self.notification_provider
-                        .send_notification(message)
-                        .await?
+                    let notification = Notification::new(device_token.to_string(), title, body);
+                    self.producer.produce_notification(&notification).await;
                 }
             }
         }
@@ -348,12 +338,8 @@ impl NotificationServiceInterface for NotificationService {
                     .clone()
                     .unwrap_or("-".to_string());
                 let body = format!("New course total grade | {}", new_external_grade.grade);
-                let message =
-                    self.notification_provider
-                        .create_message(device_token, &title, &body);
-                self.notification_provider
-                    .send_notification(message)
-                    .await?
+                let notification = Notification::new(device_token.to_string(), title, body);
+                self.producer.produce_notification(&notification).await;
             }
         }
         if flag {

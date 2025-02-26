@@ -1,3 +1,3 @@
 pub mod client;
 pub mod db;
-pub mod notifications;
+pub mod event_producer;

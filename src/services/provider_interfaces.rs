@@ -4,7 +4,6 @@ use crate::models::grade::{GradesOverview, UserGrades};
 use crate::models::user::User;
 use anyhow::Result;
 use async_trait::async_trait;
-use fcm_rs::models::Message;
 
 #[async_trait]
 pub trait DataProviderInterface: Send + Sync {
@@ -23,10 +22,4 @@ pub trait DataProviderInterface: Send + Sync {
         course_id: i64,
     ) -> Result<Events, reqwest::Error>;
     async fn get_grades_overview(&self, token: &str) -> Result<GradesOverview, reqwest::Error>;
-}
-
-#[async_trait]
-pub trait NotificationProviderInterface: Send + Sync {
-    async fn send_notification(&self, message: Message) -> Result<()>;
-    fn create_message(&self, device_token: &str, title: &str, body: &str) -> Message;
 }

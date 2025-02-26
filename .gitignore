@@ -2,3 +2,4 @@
 /target
 /service_account_key.json
 /.env
+/.docker-compose.yml
