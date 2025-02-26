@@ -23,8 +23,8 @@ use crate::controllers::user_controller::user_routes;
 use crate::infrastructure::db::db_connection::connect;
 use crate::repositories::data_repository::DataRepository;
 use crate::services::data_service::DataService;
-use crate::services::notification_service::NotificationService;
-use crate::services::notification_service_interfaces::NotificationServiceInterface;
+use crate::services::producer_service::ProducerService;
+use crate::services::producer_service_interfaces::ProducerServiceInterface;
 use controllers::shared::app_state::AppState;
 use infrastructure::client::moodle_client::MoodleClient;
 
@@ -62,6 +62,10 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
     let format_url = env::var("FORMAT_URL").expect("You must set the FORMAT_URL environment var!");
     let kafka_url = env::var("KAFKA_URL").expect("You must set the KAFKA_URL environment var!");
+    let batch_size = env::var("BATCH_SIZE")
+        .expect("You must set the BATCH_SIZE environment var!")
+        .parse::<i64>()
+        .expect("BATCH_SIZE must be a valid i64 number!");
 
     let moodle_client: Arc<dyn DataProviderInterface> =
         Arc::new(MoodleClient::new(base_url, format_url));
@@ -72,19 +76,18 @@ async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
     let data_service = DataService::new(Arc::clone(&moodle_client), data_repository);
     let data_service: Arc<dyn DataServiceInterfaces> = Arc::new(data_service);
 
-    let producer = Arc::new(EventProducer::new(&kafka_url));
+    let producer = Box::new(EventProducer::new(&kafka_url));
 
-    let notification_service =
-        NotificationService::new(producer, moodle_client, Arc::clone(&data_service));
+    let producer_service = ProducerService::new(producer, moodle_client, Arc::clone(&data_service));
 
-    let limit_batch_size = 100;
+    let limit_batch_size = batch_size;
     let mut skip = 0;
 
     tokio::spawn({
         async move {
             loop {
                 // println!("{}", skip);
-                if let Err(e) = notification_service
+                if let Err(e) = producer_service
                     .get_batches(limit_batch_size, &mut skip)
                     .await
                 {

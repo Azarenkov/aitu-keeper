@@ -5,29 +5,25 @@ use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_
 use crate::models::notification::Notification;
 use crate::models::token::Token;
 use crate::models::user::User;
-use crate::services::notification_service_interfaces::NotificationServiceInterface;
+use crate::services::producer_service_interfaces::ProducerServiceInterface;
 use crate::services::provider_interfaces::DataProviderInterface;
 use anyhow::Result;
 use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
-use tokio::sync::Semaphore;
-// use tokio::sync::Semaphore;
-use tokio::task;
 
 use super::data_service_interfaces::DataServiceInterfaces;
 use super::event_producer_interface::EventProducerInterface;
 
-#[derive(Clone)]
-pub struct NotificationService {
-    producer: Arc<dyn EventProducerInterface>,
+pub struct ProducerService {
+    producer: Box<dyn EventProducerInterface>,
     data_provider: Arc<dyn DataProviderInterface>,
     data_service: Arc<dyn DataServiceInterfaces>,
 }
 
-impl NotificationService {
+impl ProducerService {
     pub fn new(
-        producer: Arc<dyn EventProducerInterface>,
+        producer: Box<dyn EventProducerInterface>,
         data_provider: Arc<dyn DataProviderInterface>,
         data_service: Arc<dyn DataServiceInterfaces>,
     ) -> Self {
@@ -40,7 +36,7 @@ impl NotificationService {
 }
 
 #[async_trait]
-impl NotificationServiceInterface for NotificationService {
+impl ProducerServiceInterface for ProducerService {
     async fn get_batches<'a>(&self, limit: i64, skip: &'a mut u64) -> Result<()> {
         let mut batch = Vec::new();
 
@@ -76,69 +72,49 @@ impl NotificationServiceInterface for NotificationService {
     }
 
     async fn process_batch(&self, batch: &[Token]) -> Result<()> {
-        let semaphore = Arc::new(Semaphore::new(10));
-        let self_arc = Arc::new(self.clone());
-
-        let mut handles = Vec::new();
-
         for tokens in batch.iter() {
-            let tokens = tokens.clone();
-            let permit = semaphore.clone().acquire_owned().await?;
-            let self_arc = Arc::clone(&self_arc);
+            let token = &tokens.token;
 
-            let handle = task::spawn(async move {
-                let token = &tokens.token;
-
-                if let Some(device_token) = &tokens.device_token {
-                    match self_arc.send_user_info(token, device_token).await {
-                        Ok(user) => {
-                            if let Ok(mut courses) =
-                                self_arc.send_course(token, device_token, &user).await
-                            {
-                                if let Err(e) = self_arc
-                                    .send_grade(token, device_token, &user, &courses)
-                                    .await
-                                {
-                                    eprintln!("Error sending grade: {:?}", e);
-                                }
-                                if let Err(e) = self_arc
-                                    .send_grade_overview(token, device_token, &courses)
-                                    .await
-                                {
-                                    eprintln!("Error sending grade overview: {:?}", e);
-                                }
-                                Course::delete_past_courses(&mut courses);
-                                if let Err(e) =
-                                    self_arc.send_deadline(token, device_token, &courses).await
-                                {
-                                    eprintln!("Error sending deadline: {:?}", e);
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Error sending user info: {:?}", e);
-                        }
-                    }
-                } else if let Err(e) = self_arc.data_service.fetch_and_update_data(token).await {
-                    eprintln!("Error fetching and saving data: {:?}", e);
-                }
-
-                drop(permit);
-            });
-
-            handles.push(handle);
-        }
-
-        for handle in handles {
-            if let Err(e) = handle.await {
-                eprintln!("Task failed: {:?}", e);
+            if let Some(device_token) = &tokens.device_token {
+                self.process_producing(token, device_token).await?;
+            } else {
+                self.data_service.fetch_and_update_data(token).await?;
             }
         }
 
         Ok(())
     }
 
-    async fn send_user_info(&self, token: &str, device_token: &str) -> Result<User> {
+    async fn process_producing(&self, token: &str, device_token: &str) -> Result<()> {
+        match self.produce_user_info(token, device_token).await {
+            Ok(user) => {
+                if let Ok(mut courses) = self.produce_course(token, device_token, &user).await {
+                    if let Err(e) = self
+                        .produce_grade(token, device_token, &user, &courses)
+                        .await
+                    {
+                        eprintln!("Error sending grade: {:?}", e);
+                    }
+                    if let Err(e) = self
+                        .produce_grade_overview(token, device_token, &courses)
+                        .await
+                    {
+                        eprintln!("Error sending grade overview: {:?}", e);
+                    }
+                    Course::delete_past_courses(&mut courses);
+                    if let Err(e) = self.produce_deadline(token, device_token, &courses).await {
+                        eprintln!("Error sending deadline: {:?}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error sending user info: {:?}", e);
+            }
+        }
+        Ok(())
+    }
+
+    async fn produce_user_info(&self, token: &str, device_token: &str) -> Result<User> {
         let external_user = self.data_provider.get_user(token).await?;
         let user = self.data_service.get_user(token).await?;
         if !user.eq(&external_user) {
@@ -152,7 +128,7 @@ impl NotificationServiceInterface for NotificationService {
         Ok(external_user)
     }
 
-    async fn send_course(
+    async fn produce_course(
         &self,
         token: &str,
         device_token: &str,
@@ -180,7 +156,7 @@ impl NotificationServiceInterface for NotificationService {
         Ok(external_courses)
     }
 
-    async fn send_deadline(
+    async fn produce_deadline(
         &self,
         token: &str,
         device_token: &str,
@@ -236,7 +212,7 @@ impl NotificationServiceInterface for NotificationService {
         Ok(())
     }
 
-    async fn send_grade(
+    async fn produce_grade(
         &self,
         token: &str,
         device_token: &str,
@@ -307,23 +283,17 @@ impl NotificationServiceInterface for NotificationService {
         Ok(())
     }
 
-    async fn send_grade_overview(
+    async fn produce_grade_overview(
         &self,
         token: &str,
         device_token: &str,
         courses: &[Course],
     ) -> Result<()> {
         let mut flag = false;
-        let mut external_grades_overview = self.data_provider.get_grades_overview(token).await?;
-
-        for external_grade_overview in external_grades_overview.grades.iter_mut() {
-            for course in courses {
-                if external_grade_overview.courseid == course.id {
-                    external_grade_overview.course_name = Option::from(course.fullname.clone())
-                }
-            }
-        }
-        sort_grades_overview(&mut external_grades_overview.grades);
+        let external_grades_overview = self
+            .data_service
+            .fetch_grades_overview(token, courses)
+            .await?;
 
         let mut grades_overview = self.data_service.get_grades_overview(token).await?;
         sort_grades_overview(&mut grades_overview);
