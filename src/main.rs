@@ -1,15 +1,11 @@
-use actix_web::web::Data;
 use actix_web::{guard, web, App, HttpResponse, HttpServer};
-use dotenv::dotenv;
-use infrastructure::event_producer::producer::EventProducer;
-use services::data_service::RepositoryInterfaces;
-use services::data_service_interfaces::DataServiceInterfaces;
-use services::provider_interfaces::DataProviderInterface;
-use std::env;
+use config::Config;
+use infrastructure::app_setup::{
+    create_app_state, initialize_dependencies, spawn_background_tasks,
+};
 use std::error::Error;
-use std::sync::Arc;
-// use tokio::time::Duration;
 
+mod config;
 mod controllers;
 mod infrastructure;
 mod models;
@@ -20,24 +16,17 @@ use crate::controllers::course_controller::course_routes;
 use crate::controllers::deadline_controller::deadline_routes;
 use crate::controllers::grade_controller::grade_routes;
 use crate::controllers::user_controller::user_routes;
-use crate::infrastructure::db::db_connection::connect;
-use crate::repositories::data_repository::DataRepository;
-use crate::services::data_service::DataService;
-use crate::services::producer_service::ProducerService;
-use crate::services::producer_service_interfaces::ProducerServiceInterface;
-use controllers::shared::app_state::AppState;
-use infrastructure::client::moodle_client::MoodleClient;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // console_subscriber::init();
+    dotenv::dotenv().ok();
 
-    dotenv().ok();
+    let config = Config::from_env()?;
+    let deps = initialize_dependencies(&config).await?;
+    spawn_background_tasks(deps.producer_service, config.batch_size).await;
+    let app_state = create_app_state(deps.data_service);
 
-    let app_state = setup().await?;
-    let port = env::var("PORT").expect("You must set the PORT environment var!");
-    let address = format!("0.0.0.0:{}", port);
-
+    let address = format!("0.0.0.0:{}", config.port);
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
@@ -54,52 +43,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .bind(address)?
     .run()
     .await?;
+
     Ok(())
-}
-
-async fn setup() -> Result<Data<AppState>, Box<dyn Error>> {
-    let mongo_uri = env::var("MONGODB_URI").expect("You must set the MONGODB_URI environment var!");
-    let base_url = env::var("BASE_URL").expect("You must set the BASE_URL environment var!");
-    let format_url = env::var("FORMAT_URL").expect("You must set the FORMAT_URL environment var!");
-    let kafka_url = env::var("KAFKA_URL").expect("You must set the KAFKA_URL environment var!");
-    let batch_size = env::var("BATCH_SIZE")
-        .expect("You must set the BATCH_SIZE environment var!")
-        .parse::<i64>()
-        .expect("BATCH_SIZE must be a valid i64 number!");
-
-    let moodle_client: Arc<dyn DataProviderInterface> =
-        Arc::new(MoodleClient::new(base_url, format_url));
-    let db = connect(&mongo_uri).await?.collection("users");
-
-    let data_repository: Box<dyn RepositoryInterfaces> = Box::new(DataRepository::new(db));
-
-    let data_service = DataService::new(Arc::clone(&moodle_client), data_repository);
-    let data_service: Arc<dyn DataServiceInterfaces> = Arc::new(data_service);
-
-    let producer = Box::new(EventProducer::new(&kafka_url));
-
-    let producer_service = ProducerService::new(producer, moodle_client, Arc::clone(&data_service));
-
-    let limit_batch_size = batch_size;
-    let mut skip = 0;
-
-    tokio::spawn({
-        async move {
-            loop {
-                // println!("{}", skip);
-                if let Err(e) = producer_service
-                    .get_batches(limit_batch_size, &mut skip)
-                    .await
-                {
-                    eprintln!("Error in sending notifications: {}", e);
-                };
-
-                // tokio::time::sleep(Duration::from_secs(5)).await;
-            }
-        }
-    });
-
-    let app_state = AppState::new(Arc::clone(&data_service));
-
-    Ok(app_state)
 }

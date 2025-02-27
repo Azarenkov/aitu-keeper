@@ -4,7 +4,7 @@ use crate::models::user::User;
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait ProducerServiceInterface {
+pub trait ProducerServiceInterface: Send + Sync {
     async fn get_batches<'a>(&self, limit: i64, skip: &'a mut u64) -> anyhow::Result<()>;
     async fn process_batch(&self, batch: &[Token]) -> anyhow::Result<()>;
     async fn process_producing(&self, token: &str, device_token: &str) -> anyhow::Result<()>;
