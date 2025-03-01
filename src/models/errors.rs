@@ -44,7 +44,7 @@ impl ResponseError for ApiError {
         match self {
             ApiError::InvalidToken => actix_web::http::StatusCode::BAD_REQUEST,
             ApiError::DataNotFound { field: _ } => actix_web::http::StatusCode::NOT_FOUND,
-            ApiError::DataIsEmpty { field: _ } => actix_web::http::StatusCode::NO_CONTENT,
+            ApiError::DataIsEmpty { field: _ } => actix_web::http::StatusCode::NOT_FOUND,
             ApiError::InternalServerError => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
             ApiError::UserAlreadyExist => actix_web::http::StatusCode::FOUND,
         }

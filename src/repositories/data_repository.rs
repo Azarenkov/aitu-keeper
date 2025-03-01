@@ -1,6 +1,5 @@
 use crate::models::course::Course;
 use crate::models::deadline::Deadline;
-// use crate::models::errors::ApiError;
 use crate::models::grade::{Grade, GradeOverview, GradesOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
@@ -117,9 +116,12 @@ impl CourseRepositoryInterface for DataRepository {
             if let Some(Bson::Array(courses_array)) = doc.get("courses") {
                 let bson = Bson::from(courses_array);
                 let courses = from_bson::<Vec<Course>>(bson)?;
+                if courses.is_empty() {
+                    return Err(RepositoryError::DataIsEmpty("Courses".to_string()));
+                }
                 Ok(courses)
             } else {
-                Err(RepositoryError::DataIsEmpty("Courses".to_string()))
+                Err(RepositoryError::DataNotFound("Courses".to_string()))
             }
         } else {
             Err(RepositoryError::DataNotFound("Courses".to_string()))
@@ -149,9 +151,12 @@ impl GradeRepositoryInterface for DataRepository {
             if let Some(Bson::Array(grades_array)) = doc.get("grades") {
                 let bson = Bson::from(grades_array);
                 let grades = from_bson::<Vec<Grade>>(bson)?;
+                if grades.is_empty() {
+                    return Err(RepositoryError::DataIsEmpty("Grades".to_string()));
+                }
                 Ok(grades)
             } else {
-                Err(RepositoryError::DataIsEmpty("Grades".to_string()))
+                Err(RepositoryError::DataNotFound("Grades".to_string()))
             }
         } else {
             Err(RepositoryError::DataNotFound("Grades".to_string()))
@@ -185,9 +190,12 @@ impl GradeRepositoryInterface for DataRepository {
             if let Some(Bson::Array(grades_overview_array)) = doc.get("grades_overview") {
                 let bson = Bson::from(grades_overview_array);
                 let grades_overview = from_bson::<Vec<GradeOverview>>(bson)?;
+                if grades_overview.is_empty() {
+                    return Err(RepositoryError::DataIsEmpty("Grades".to_string()));
+                }
                 Ok(grades_overview)
             } else {
-                Err(RepositoryError::DataIsEmpty("Grades".to_string()))
+                Err(RepositoryError::DataNotFound("Grades".to_string()))
             }
         } else {
             Err(RepositoryError::DataNotFound("Grades".to_string()))
@@ -220,9 +228,12 @@ impl DeadlineRepositoryInterface for DataRepository {
             if let Some(Bson::Array(deadlines_array)) = doc.get("deadlines") {
                 let bson = Bson::from(deadlines_array);
                 let deadlines = from_bson::<Vec<Deadline>>(bson)?;
+                if deadlines.is_empty() {
+                    return Err(RepositoryError::DataIsEmpty("Deadlines".to_string()));
+                }
                 Ok(deadlines)
             } else {
-                Err(RepositoryError::DataIsEmpty("Deadlines".to_string()))
+                Err(RepositoryError::DataNotFound("Deadlines".to_string()))
             }
         } else {
             Err(RepositoryError::DataNotFound("Deadlines".to_string()))
