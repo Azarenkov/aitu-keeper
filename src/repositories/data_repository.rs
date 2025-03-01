@@ -60,7 +60,7 @@ impl TokenRepositoryInterface for DataRepository {
 
         let expected_token = self.collection.find_one(doc.clone()).await?;
         if expected_token.is_none() {
-            return Err(RepositoryError::UserNotFound);
+            return Err(RepositoryError::DataNotFound("User".to_string()));
         }
 
         self.collection.delete_one(doc).await?;
@@ -81,7 +81,7 @@ impl UserRepositoryInterface for DataRepository {
                 None => Err(RepositoryError::DataIsEmpty("User".to_string())),
             }
         } else {
-            Err(RepositoryError::UserNotFound)
+            Err(RepositoryError::DataNotFound("User".to_string()))
         }
     }
 

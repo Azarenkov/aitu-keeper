@@ -5,7 +5,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum ServiceError {
     InvalidToken,
-    UserNotFound,
+    UserAlreayExist,
     DataNotFound(String),
     DataIsEmpty(String),
     DatabaseError(String),
@@ -18,7 +18,7 @@ impl fmt::Display for ServiceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ServiceError::InvalidToken => write!(f, "Invalid token provided"),
-            ServiceError::UserNotFound => write!(f, "User not found"),
+            ServiceError::UserAlreayExist => write!(f, "User already exist"),
             ServiceError::DataNotFound(field) => write!(f, "{} not found", field),
             ServiceError::DataIsEmpty(field) => write!(f, "{} data is empty", field),
             ServiceError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
@@ -30,8 +30,7 @@ impl fmt::Display for ServiceError {
 impl From<RepositoryError> for ServiceError {
     fn from(err: RepositoryError) -> Self {
         match err {
-            RepositoryError::UserNotFound => ServiceError::UserNotFound,
-            RepositoryError::UserAlreadyExists => ServiceError::InvalidToken,
+            RepositoryError::UserAlreadyExists => ServiceError::UserAlreayExist,
             RepositoryError::DataNotFound(field) => ServiceError::DataNotFound(field),
             RepositoryError::DataIsEmpty(field) => ServiceError::DataIsEmpty(field),
             RepositoryError::DatabaseError(e) => ServiceError::DatabaseError(e.to_string()),

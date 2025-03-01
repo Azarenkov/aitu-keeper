@@ -2,7 +2,6 @@ use std::{error::Error as StdError, fmt};
 
 #[derive(Debug)]
 pub enum RepositoryError {
-    UserNotFound,
     UserAlreadyExists,
     DataNotFound(String),
     DataIsEmpty(String),
@@ -16,7 +15,6 @@ impl StdError for RepositoryError {}
 impl fmt::Display for RepositoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RepositoryError::UserNotFound => write!(f, "User not found"),
             RepositoryError::UserAlreadyExists => write!(f, "User already exists"),
             RepositoryError::DataNotFound(field) => write!(f, "{} data not found", field),
             RepositoryError::DataIsEmpty(field) => write!(f, "{} data is empty", field),
