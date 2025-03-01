@@ -14,6 +14,6 @@ async fn get_courses(token: web::Path<String>, app_state: web::Data<AppState>) -
         .await
     {
         Ok(courses) => HttpResponse::Ok().json(courses),
-        Err(e) => handle_any_error(&e),
+        Err(e) => handle_any_error(Box::new(e)),
     }
 }

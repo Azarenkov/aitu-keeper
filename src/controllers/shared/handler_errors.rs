@@ -1,11 +1,18 @@
-use crate::models::errors::ApiError;
-use actix_web::HttpResponse;
-use anyhow::Error;
+use std::error::Error;
 
-pub fn handle_any_error(e: &Error) -> HttpResponse {
+use actix_web::HttpResponse;
+
+use crate::{models::errors::ApiError, services::errors::ServiceError};
+
+pub fn handle_any_error(e: Box<dyn Error>) -> HttpResponse {
     if let Some(api_err) = e.downcast_ref::<ApiError>() {
-        api_err.as_http_response()
-    } else {
-        HttpResponse::InternalServerError().json(ApiError::InternalServerError.to_string())
+        return api_err.as_http_response();
     }
+
+    if let Some(service_err) = e.downcast_ref::<ServiceError>() {
+        return ApiError::from(service_err).as_http_response();
+    }
+
+    HttpResponse::InternalServerError()
+        .json(ApiError::InternalServerError(e.to_string()).to_string())
 }

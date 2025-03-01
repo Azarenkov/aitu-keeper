@@ -2,7 +2,6 @@ use crate::models::course::Course;
 use crate::models::deadline::Events;
 use crate::models::grade::{GradesOverview, UserGrades};
 use crate::models::user::User;
-use anyhow::Result;
 use async_trait::async_trait;
 
 #[async_trait]

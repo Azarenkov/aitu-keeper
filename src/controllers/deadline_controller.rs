@@ -14,6 +14,6 @@ async fn get_deadlines(token: web::Path<String>, app_state: web::Data<AppState>)
         .await
     {
         Ok(deadlines) => HttpResponse::Ok().json(deadlines),
-        Err(e) => handle_any_error(&e),
+        Err(e) => handle_any_error(Box::new(e)),
     }
 }

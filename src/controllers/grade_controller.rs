@@ -14,7 +14,7 @@ pub fn grade_routes(cfg: &mut web::ServiceConfig) {
 async fn get_grades(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
     match app_state.data_service.get_grades(&token.into_inner()).await {
         Ok(grades) => HttpResponse::Ok().json(grades),
-        Err(e) => handle_any_error(&e),
+        Err(e) => handle_any_error(Box::new(e)),
     }
 }
 
@@ -29,6 +29,6 @@ async fn get_grades_overview(
         .await
     {
         Ok(grades) => HttpResponse::Ok().json(grades),
-        Err(e) => handle_any_error(&e),
+        Err(e) => handle_any_error(Box::new(e)),
     }
 }

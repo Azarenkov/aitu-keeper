@@ -16,7 +16,7 @@ pub fn user_routes(cfg: &mut web::ServiceConfig) {
 async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) -> HttpResponse {
     match app_state.data_service.register_user(&token).await {
         Ok(_) => HttpResponse::Ok().json("User was created"),
-        Err(e) => handle_any_error(&e),
+        Err(e) => handle_any_error(Box::new(e)),
     }
 }
 
@@ -24,7 +24,7 @@ async fn create_user(token: web::Json<Token>, app_state: web::Data<AppState>) ->
 async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
     match app_state.data_service.get_user(&token.into_inner()).await {
         Ok(user) => HttpResponse::Ok().json(user),
-        Err(e) => handle_any_error(&e),
+        Err(e) => handle_any_error(Box::new(e)),
     }
 }
 
@@ -32,6 +32,6 @@ async fn get_user(token: web::Path<String>, app_state: web::Data<AppState>) -> H
 async fn delete_user(token: web::Path<String>, app_state: web::Data<AppState>) -> HttpResponse {
     match app_state.data_service.delete_one_user(&token).await {
         Ok(_) => HttpResponse::Ok().json("User was deleted"),
-        Err(e) => handle_any_error(&e),
+        Err(e) => handle_any_error(Box::new(e)),
     }
 }

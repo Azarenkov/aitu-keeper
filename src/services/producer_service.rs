@@ -1,6 +1,5 @@
 use crate::models::course::{compare_courses, Course};
 use crate::models::deadline::{compare_deadlines, sort_deadlines};
-use crate::models::errors::ApiError;
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
 use crate::models::notification::Notification;
 use crate::models::token::Token;
@@ -13,6 +12,7 @@ use futures_util::TryStreamExt;
 use std::sync::Arc;
 
 use super::data_service_interfaces::DataServiceInterfaces;
+use super::errors::ServiceError;
 use super::event_producer_interface::EventProducerInterface;
 
 pub struct ProducerService {
@@ -166,11 +166,9 @@ impl ProducerServiceInterface for ProducerService {
         for course in courses {
             let deadlines = match self.data_service.get_deadlines(token).await {
                 Ok(deadlines) => deadlines,
-                Err(e) => match e.downcast_ref::<ApiError>() {
-                    Some(ApiError::DeadlinesAreEmpty) => {
-                        vec![]
-                    }
-                    _ => return Err(e),
+                Err(e) => match e {
+                    ServiceError::DataIsEmpty(_) => vec![],
+                    _ => return Err(e.into()),
                 },
             };
 
