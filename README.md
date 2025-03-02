@@ -1,4 +1,5 @@
-[![Rust](https://github.com/Azarenkov/aitu-keeper/actions/workflows/rust.yml/badge.svg)](https://github.com/Azarenkov/aitu-keeper/actions/workflows/rust.yml)# aitu-keeper
+[![Rust](https://github.com/Azarenkov/aitu-keeper/actions/workflows/rust.yml/badge.svg)](https://github.com/Azarenkov/aitu-keeper/actions/workflows/rust.yml)
+# aitu-keeper
 A web application that processes data from Moodle, such as grades, deadlines, attendance, courses, and personal data. When data changes, such as grades, it saves the change in MongoDB and sends a message to Kafka for further notification to users' smartphones.
 
 ## Technologies
