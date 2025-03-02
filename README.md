@@ -6,6 +6,7 @@ A web application that processes data from Moodle, such as grades, deadlines, at
 - [Apache Kafka](https://kafka.apache.org/)
 - [MongoDB](https://www.mongodb.com/)
 - [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging?hl=ru)
+- [Docker](https://www.docker.com/)
 
 ## System Architecture Diagram
   ![scheme](scheme.png)
