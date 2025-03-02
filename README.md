@@ -8,5 +8,5 @@ A web application that processes data from Moodle, such as grades, deadlines, at
 
 ## Developers
 Contacts
-- [Alexey Azarenkov](azarenkov20141@icloud.com) — Rust Developer
+- [Alexey Azarenkov](tg://resolve?domain=azarenkov) — Rust Developer
 - [Evelina Penkova] - Mobile developer
