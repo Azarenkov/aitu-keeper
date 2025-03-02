@@ -6,6 +6,9 @@ A web application that processes data from Moodle, such as grades, deadlines, at
 - [Apache Kafka](https://kafka.apache.org/)
 - [MongoDB](https://www.mongodb.com/)
 
+## System Architecture Diagram
+  ![scheme](scheme.png)
+
 ## Developers
 Contacts
 - [Alexey Azarenkov](https://t.me/azarenkov_alexey) — Rust Developer
