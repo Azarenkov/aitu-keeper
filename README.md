@@ -4,6 +4,7 @@ A web application that processes data from Moodle, such as grades, deadlines, at
 
 ## Technologies
 - [Rust](https://www.rust-lang.org/ru)
+- [Actix Web](https://actix.rs/)
 - [Apache Kafka](https://kafka.apache.org/)
 - [MongoDB](https://www.mongodb.com/)
 - [Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging?hl=ru)
