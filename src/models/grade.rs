@@ -29,7 +29,7 @@ pub struct GradeOverview {
     pub course_name: Option<String>,
     pub courseid: i64,
     pub grade: String,
-    rawgrade: String,
+    rawgrade: Option<String>,
 }
 
 pub fn compare_grades<'a>(
