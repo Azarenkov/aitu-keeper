@@ -97,6 +97,7 @@ impl NotificationServiceInterface for NotificationService {
                                     .send_grade(token, device_token, &user, &courses)
                                     .await
                                 {
+                                    println!("{}", device_token);
                                     eprintln!("Error sending grade: {:?}", e);
                                 }
                                 if let Err(e) = self_arc
