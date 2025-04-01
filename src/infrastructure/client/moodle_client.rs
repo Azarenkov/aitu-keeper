@@ -90,6 +90,7 @@ impl DataProviderInterface for MoodleClient {
             self.base_url, token, self.format
         );
         let response = self.client.get(&url).send().await?;
+        println!("{:?}", response);
         response.json::<GradesOverview>().await
     }
 }
