@@ -19,7 +19,7 @@ impl MoodleClient {
     pub fn new(base_url: String, format: String) -> Self {
         Self {
             client: Client::builder()
-                .timeout(Duration::from_secs(15))
+                .timeout(Duration::from_secs(30))
                 .build()
                 .unwrap(),
             base_url,
