@@ -6,7 +6,6 @@ use crate::models::grade::{GradesOverview, UserGrades};
 use crate::models::user::User;
 use crate::services::provider_interfaces::DataProviderInterface;
 use async_trait::async_trait;
-use log::{error, info};
 use reqwest::{Client, Error};
 
 pub struct MoodleClient {
@@ -19,7 +18,7 @@ impl MoodleClient {
     pub fn new(base_url: String, format: String) -> Self {
         Self {
             client: Client::builder()
-                .timeout(Duration::from_secs(30))
+                .timeout(Duration::from_secs(15))
                 .build()
                 .unwrap(),
             base_url,
@@ -28,19 +27,20 @@ impl MoodleClient {
     }
 
     async fn send_request<T: serde::de::DeserializeOwned>(&self, url: &str) -> Result<T, Error> {
-        info!("Sending request to URL: {}", url);
-        let response = self.client.get(url).send().await;
-        match response {
-            Ok(value) => value.json::<T>().await,
-            Err(e) => {
-                let status = e.status();
-                let text = e.to_string();
-                error!(
-                    "Request to URL {} failed with status {:?}: {}",
-                    url, status, text
-                );
-                Err(e)
+        let mut attempt = 0;
+        loop {
+            let response = self.client.get(url).send().await;
+            match response {
+                Ok(value) => return value.json::<T>().await,
+                Err(e) => {
+                    if attempt >= 2 {
+                        return Err(e);
+                    }
+                }
             }
+            attempt += 1;
+            tokio::time::sleep(Duration::from_secs(2)).await;
+            continue;
         }
     }
 }
