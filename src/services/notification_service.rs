@@ -4,10 +4,8 @@ use crate::models::errors::ApiError;
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
 use crate::models::token::Token;
 use crate::models::user::User;
-use crate::services::notification_service_interfaces::NotificationServiceInterface;
 use crate::services::provider_interfaces::{DataProviderInterface, NotificationProviderInterface};
 use anyhow::Result;
-use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
@@ -37,9 +35,8 @@ impl NotificationService {
     }
 }
 
-#[async_trait]
-impl NotificationServiceInterface for NotificationService {
-    async fn get_batches<'a>(&self, limit: i64, skip: &'a mut u64) -> Result<()> {
+impl NotificationService {
+    pub async fn get_batches(&self, limit: i64, skip: &mut u64) -> Result<()> {
         let mut batch = Vec::new();
 
         let mut cursor = self.data_service.find_all_tokens(limit, *skip).await?;
@@ -88,35 +85,8 @@ impl NotificationServiceInterface for NotificationService {
                 let token = &tokens.token;
 
                 if let Some(device_token) = &tokens.device_token {
-                    match self_arc.send_user_info(token, device_token).await {
-                        Ok(user) => {
-                            if let Ok(mut courses) =
-                                self_arc.send_course(token, device_token, &user).await
-                            {
-                                if let Err(e) = self_arc
-                                    .send_grade(token, device_token, &user, &courses)
-                                    .await
-                                {
-                                    println!("{}", device_token);
-                                    eprintln!("Error sending grade: {:?}", e);
-                                }
-                                if let Err(e) = self_arc
-                                    .send_grade_overview(token, device_token, &courses)
-                                    .await
-                                {
-                                    eprintln!("Error sending grade overview: {:?}", e);
-                                }
-                                Course::delete_past_courses(&mut courses);
-                                if let Err(e) =
-                                    self_arc.send_deadline(token, device_token, &courses).await
-                                {
-                                    eprintln!("Error sending deadline: {:?}", e);
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            eprintln!("Error sending user info: {:?}", e);
-                        }
+                    if let Err(e) = self_arc.send_notification(token, device_token).await {
+                        eprintln!("Error sending notification: {:?}", e);
                     }
                 } else if let Err(e) = self_arc.data_service.fetch_and_update_data(token).await {
                     eprintln!("Error fetching and saving data: {:?}", e);
@@ -134,6 +104,32 @@ impl NotificationServiceInterface for NotificationService {
             }
         }
 
+        Ok(())
+    }
+
+    async fn send_notification(&self, token: &str, device_token: &str) -> Result<()> {
+        match self.send_user_info(token, device_token).await {
+            Ok(user) => {
+                if let Ok(mut courses) = self.send_course(token, device_token, &user).await {
+                    if let Err(e) = self.send_grade(token, device_token, &user, &courses).await {
+                        eprintln!("Error sending grade: {:?}", e);
+                    }
+                    if let Err(e) = self
+                        .send_grade_overview(token, device_token, &courses)
+                        .await
+                    {
+                        eprintln!("Error sending grade overview: {:?}", e);
+                    }
+                    Course::delete_past_courses(&mut courses);
+                    if let Err(e) = self.send_deadline(token, device_token, &courses).await {
+                        eprintln!("Error sending deadline: {:?}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error sending user info: {:?}", e);
+            }
+        }
         Ok(())
     }
 

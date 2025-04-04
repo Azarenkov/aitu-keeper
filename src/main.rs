@@ -28,7 +28,6 @@ use crate::infrastructure::notifications::firebase_messages_client::FirebaseMess
 use crate::repositories::data_repository::DataRepository;
 use crate::services::data_service::DataService;
 use crate::services::notification_service::NotificationService;
-use crate::services::notification_service_interfaces::NotificationServiceInterface;
 use controllers::shared::app_state::AppState;
 use infrastructure::client::moodle_client::MoodleClient;
 
