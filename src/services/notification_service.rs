@@ -8,12 +8,11 @@ use crate::services::provider_interfaces::{DataProviderInterface, NotificationPr
 use anyhow::Result;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
-// use tokio::sync::Semaphore;
 use tokio::task;
 
 use super::data_service_interfaces::DataServiceInterfaces;
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct NotificationService {
     notification_provider: Arc<dyn NotificationProviderInterface>,
     data_provider: Arc<dyn DataProviderInterface>,
@@ -35,7 +34,7 @@ impl NotificationService {
 }
 
 impl NotificationService {
-    pub async fn get_batches(&self, limit: i64, skip: &mut u64) -> Result<()> {
+    pub async fn get_batches(&'static self, limit: i64, skip: &mut u64) -> Result<()> {
         let mut batch = Vec::new();
 
         let mut cursor = self.data_service.find_all_tokens(limit, *skip).await?;
@@ -56,36 +55,29 @@ impl NotificationService {
             }
         }
 
-        // println!("{:?}", batch);
-
         if !has_documents {
             *skip = 0;
             return Ok(());
         }
-
         if let Err(e) = self.process_batch(&batch).await {
             eprintln!("Error processing batch: {}", e);
         }
         Ok(())
     }
 
-    async fn process_batch(&self, batch: &[Token]) -> Result<()> {
-        let self_arc = Arc::new(self.clone());
-
+    async fn process_batch(&'static self, batch: &[Token]) -> Result<()> {
         let mut handles = Vec::new();
 
         for tokens in batch.iter() {
             let tokens = tokens.clone();
-            let self_arc = Arc::clone(&self_arc);
 
             let handle = task::spawn(async move {
-                let token = &tokens.token;
-
                 if let Some(device_token) = &tokens.device_token {
-                    if let Err(e) = self_arc.send_notification(token, device_token).await {
+                    if let Err(e) = self.send_notification(&tokens.token, device_token).await {
                         eprintln!("Error sending notification: {:?}", e);
                     }
-                } else if let Err(e) = self_arc.data_service.fetch_and_update_data(token).await {
+                } else if let Err(e) = self.data_service.fetch_and_update_data(&tokens.token).await
+                {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
             });

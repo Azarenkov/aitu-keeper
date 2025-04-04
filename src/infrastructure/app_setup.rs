@@ -51,7 +51,10 @@ pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies>
     })
 }
 
-pub async fn spawn_background_tasks(notification_service: NotificationService, batch_size: i64) {
+pub async fn spawn_background_tasks(
+    notification_service: &'static NotificationService,
+    batch_size: i64,
+) {
     tokio::spawn(async move {
         let mut skip = 0;
         loop {

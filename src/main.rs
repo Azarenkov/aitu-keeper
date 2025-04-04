@@ -4,6 +4,8 @@ use dotenv::dotenv;
 use infrastructure::app_setup::{
     create_app_state, initialize_dependencies, spawn_background_tasks,
 };
+use services::notification_service::NotificationService;
+use tokio::sync::OnceCell;
 
 use std::error::Error;
 
@@ -19,6 +21,8 @@ use crate::controllers::deadline_controller::deadline_routes;
 use crate::controllers::grade_controller::grade_routes;
 use crate::controllers::user_controller::user_routes;
 
+static NOTIFICATION_SERVICE: OnceCell<NotificationService> = OnceCell::const_new();
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
@@ -26,7 +30,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let config = Config::from_env()?;
     let deps = initialize_dependencies(&config).await?;
-    spawn_background_tasks(deps.notification_service, config.batch_size).await;
+    NOTIFICATION_SERVICE.set(deps.notification_service).unwrap();
+
+    spawn_background_tasks(NOTIFICATION_SERVICE.get().unwrap(), config.batch_size).await;
     let app_state = create_app_state(deps.data_service);
 
     let address = format!("0.0.0.0:{}", config.port);

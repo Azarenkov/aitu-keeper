@@ -4,6 +4,7 @@ use crate::models::grade::{Grade, GradeOverview, GradesOverview};
 use crate::models::token::Token;
 use crate::models::user::User;
 use async_trait::async_trait;
+use core::fmt::Debug;
 use mongodb::bson::Document;
 use mongodb::Cursor;
 
@@ -17,6 +18,12 @@ pub trait DataServiceInterfaces:
     + Send
     + Sync
 {
+}
+
+impl Debug for dyn DataServiceInterfaces {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "DataServiceInterfaces{{}}")
+    }
 }
 
 #[async_trait]
