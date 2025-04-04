@@ -8,7 +8,6 @@ use crate::services::provider_interfaces::{DataProviderInterface, NotificationPr
 use anyhow::Result;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
-use tokio::sync::Semaphore;
 // use tokio::sync::Semaphore;
 use tokio::task;
 
@@ -71,14 +70,12 @@ impl NotificationService {
     }
 
     async fn process_batch(&self, batch: &[Token]) -> Result<()> {
-        let semaphore = Arc::new(Semaphore::new(10));
         let self_arc = Arc::new(self.clone());
 
         let mut handles = Vec::new();
 
         for tokens in batch.iter() {
             let tokens = tokens.clone();
-            let permit = semaphore.clone().acquire_owned().await?;
             let self_arc = Arc::clone(&self_arc);
 
             let handle = task::spawn(async move {
@@ -91,8 +88,6 @@ impl NotificationService {
                 } else if let Err(e) = self_arc.data_service.fetch_and_update_data(token).await {
                     eprintln!("Error fetching and saving data: {:?}", e);
                 }
-
-                drop(permit);
             });
 
             handles.push(handle);
