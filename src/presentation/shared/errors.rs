@@ -1,7 +1,7 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
 use serde::Serialize;
 
-use crate::models::errors::ServiceError;
+use crate::domain::entities::errors::ServiceError;
 
 #[derive(Serialize)]
 struct ApiError {
@@ -26,7 +26,7 @@ impl ResponseError for ServiceError {
             ServiceError::UserAlreadyExists(_) => StatusCode::ACCEPTED,
             ServiceError::InvalidToken(_) => StatusCode::BAD_REQUEST,
             ServiceError::DataNotFound(_) => StatusCode::NOT_FOUND,
-            ServiceError::InternalServerError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ServiceError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             ServiceError::ReqwestError(_) => StatusCode::NOT_FOUND,
             ServiceError::DeadlineSortingError(_) => StatusCode::NOT_FOUND,
         }

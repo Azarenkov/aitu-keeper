@@ -1,16 +1,17 @@
-use crate::models::course::Course;
-use crate::models::deadline::Deadline;
-use crate::models::grade::{Grade, GradeOverview, GradesOverview};
-use crate::models::token::Token;
-use crate::models::user::User;
-use crate::services::data_service::{
-    CourseRepositoryInterface, DeadlineRepositoryInterface, GradeRepositoryInterface,
-    RepositoryInterfaces, TokenRepositoryInterface, UserRepositoryInterface,
-};
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
 use mongodb::{bson, Collection};
+
+use crate::domain::entities::course::Course;
+use crate::domain::entities::deadline::Deadline;
+use crate::domain::entities::grade::{Grade, GradeOverview, GradesOverview};
+use crate::domain::entities::token::Token;
+use crate::domain::entities::user::User;
+use crate::domain::repositories::data_repository_abstract::{
+    CourseRepositoryAbstract, DeadlineRepositoryAbstract, GradeRepositoryAbstract,
+    RepositoryAbstract, TokenRepositoryAbstract, UserRepositoryAbstract,
+};
 
 use super::errors::DbError;
 
@@ -25,10 +26,10 @@ impl DataRepository {
 }
 
 #[async_trait]
-impl RepositoryInterfaces for DataRepository {}
+impl RepositoryAbstract for DataRepository {}
 
 #[async_trait]
-impl TokenRepositoryInterface for DataRepository {
+impl TokenRepositoryAbstract for DataRepository {
     async fn find_token(&self, token: &Token) -> Result<(), DbError> {
         let existing_token = self.collection.find_one(doc! {"_id": &token.token}).await?;
         if existing_token.is_some() {
@@ -79,7 +80,7 @@ impl TokenRepositoryInterface for DataRepository {
 }
 
 #[async_trait]
-impl UserRepositoryInterface for DataRepository {
+impl UserRepositoryAbstract for DataRepository {
     async fn find_user_by_token(&self, token: &str) -> Result<User, DbError> {
         let doc = self
             .collection
@@ -103,7 +104,7 @@ impl UserRepositoryInterface for DataRepository {
 }
 
 #[async_trait]
-impl CourseRepositoryInterface for DataRepository {
+impl CourseRepositoryAbstract for DataRepository {
     async fn save_courses(&self, token: &str, courses: &[Course]) -> Result<(), DbError> {
         let courses_doc = to_bson(courses)?;
         self.collection
@@ -132,7 +133,7 @@ impl CourseRepositoryInterface for DataRepository {
 }
 
 #[async_trait]
-impl GradeRepositoryInterface for DataRepository {
+impl GradeRepositoryAbstract for DataRepository {
     async fn save_grades(&self, token: &str, grades: &[Grade]) -> Result<(), DbError> {
         let grades_doc = to_bson(grades)?;
         self.collection
@@ -194,7 +195,7 @@ impl GradeRepositoryInterface for DataRepository {
 }
 
 #[async_trait]
-impl DeadlineRepositoryInterface for DataRepository {
+impl DeadlineRepositoryAbstract for DataRepository {
     async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<(), DbError> {
         let deadlines_doc = to_bson(deadlines)?;
         self.collection

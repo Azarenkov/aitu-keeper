@@ -1,28 +1,37 @@
-use crate::models::course::{compare_courses, Course};
-use crate::models::deadline::{compare_deadlines, sort_deadlines};
-use crate::models::errors::NotificationError;
-use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
-use crate::models::token::Token;
-use crate::models::user::User;
-use crate::services::provider_interfaces::{DataProviderInterface, NotificationProviderInterface};
-use log::warn;
 use std::sync::Arc;
+
+use log::warn;
 use tokio::task;
 
-use super::data_service_interfaces::DataServiceInterfaces;
+use crate::domain::{
+    data_providers::{
+        data_provider_abstract::DataProviderAbstract,
+        notification_provider_abstract::NotificationProviderAbstract,
+    },
+    entities::{
+        course::{compare_courses, Course},
+        deadline::{compare_deadlines, sort_deadlines},
+        errors::NotificationError,
+        grade::{compare_grades, compare_grades_overview, sort_grades_overview},
+        token::Token,
+        user::User,
+    },
+};
+
+use super::data_service::DataServiceAbstract;
 
 #[derive(Debug)]
 pub struct NotificationService {
-    notification_provider: Arc<dyn NotificationProviderInterface>,
-    data_provider: Arc<dyn DataProviderInterface>,
-    data_service: Arc<dyn DataServiceInterfaces>,
+    notification_provider: Arc<dyn NotificationProviderAbstract>,
+    data_provider: Arc<dyn DataProviderAbstract>,
+    data_service: Arc<dyn DataServiceAbstract>,
 }
 
 impl NotificationService {
     pub fn new(
-        notification_provider: Arc<dyn NotificationProviderInterface>,
-        data_provider: Arc<dyn DataProviderInterface>,
-        data_service: Arc<dyn DataServiceInterfaces>,
+        notification_provider: Arc<dyn NotificationProviderAbstract>,
+        data_provider: Arc<dyn DataProviderAbstract>,
+        data_service: Arc<dyn DataServiceAbstract>,
     ) -> Self {
         Self {
             notification_provider,

@@ -1,26 +1,23 @@
 use actix_web::middleware::Logger;
 use actix_web::{guard, web, App, HttpResponse, HttpServer};
 use config::Config;
+use domain::services::notification_service::NotificationService;
 use dotenv::dotenv;
 use infrastructure::app_setup::{
     create_app_state, initialize_dependencies, spawn_background_tasks,
 };
-use services::notification_service::NotificationService;
+use presentation::handlers::course_handler::course_routes;
+use presentation::handlers::deadline_handler::deadline_routes;
+use presentation::handlers::grade_handler::grade_routes;
+use presentation::handlers::user_handler::user_routes;
 use tokio::sync::OnceCell;
 
 use std::error::Error;
 
 mod config;
-mod controllers;
+mod domain;
 mod infrastructure;
-mod models;
-mod repositories;
-mod services;
-
-use crate::controllers::course_controller::course_routes;
-use crate::controllers::deadline_controller::deadline_routes;
-use crate::controllers::grade_controller::grade_routes;
-use crate::controllers::user_controller::user_routes;
+mod presentation;
 
 static NOTIFICATION_SERVICE: OnceCell<NotificationService> = OnceCell::const_new();
 

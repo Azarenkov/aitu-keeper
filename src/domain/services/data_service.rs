@@ -1,83 +1,110 @@
-use crate::models::course::Course;
-use crate::models::deadline::{sort_deadlines, Deadline};
-use crate::models::errors::ServiceError;
-use crate::models::grade::{sort_grades_overview, Grade, GradeOverview, GradesOverview};
-use crate::models::token::Token;
-use crate::models::user::User;
-use crate::repositories::errors::DbError;
-use crate::services::data_service_interfaces::CourseServiceInterface;
-use crate::services::data_service_interfaces::DeadlineServiceInterface;
-use crate::services::data_service_interfaces::GradeServiceInterface;
-use crate::services::data_service_interfaces::TokenServiceInterface;
-use crate::services::data_service_interfaces::UserServiceInterface;
-use crate::services::provider_interfaces::DataProviderInterface;
 use async_trait::async_trait;
+use core::fmt::Debug;
 use std::sync::Arc;
 
-use super::data_service_interfaces::DataServiceInterfaces;
+use crate::domain::{
+    data_providers::data_provider_abstract::DataProviderAbstract,
+    entities::{
+        course::Course,
+        deadline::{sort_deadlines, Deadline},
+        errors::ServiceError,
+        grade::{sort_grades_overview, Grade, GradeOverview, GradesOverview},
+        token::Token,
+        user::User,
+    },
+    repositories::data_repository_abstract::RepositoryAbstract,
+};
 
 #[async_trait]
-pub trait RepositoryInterfaces:
-    TokenRepositoryInterface
-    + UserRepositoryInterface
-    + CourseRepositoryInterface
-    + DeadlineRepositoryInterface
-    + GradeRepositoryInterface
+pub trait DataServiceAbstract:
+    TokenServiceAbstract
+    + UserServiceAbstract
+    + CourseServiceAbstract
+    + GradeServiceAbstract
+    + DeadlineServiceAbstract
     + Send
     + Sync
 {
 }
 
-#[async_trait]
-pub trait TokenRepositoryInterface {
-    async fn find_token(&self, token: &Token) -> Result<(), DbError>;
-    async fn save_tokens(&self, token: &Token) -> Result<(), DbError>;
-    async fn find_all_device_tokens(&self, limit: i64, skip: u64) -> Result<Vec<Token>, DbError>;
-    async fn delete(&self, token: &str) -> Result<(), DbError>;
+impl Debug for dyn DataServiceAbstract {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "DataServiceAbstract{{}}")
+    }
 }
 
 #[async_trait]
-pub trait UserRepositoryInterface {
-    async fn find_user_by_token(&self, token: &str) -> Result<User, DbError>;
-    async fn save_user(&self, user: &User, token: &str) -> Result<(), DbError>;
+pub trait TokenServiceAbstract {
+    async fn delete_one_user(&self, token: &str) -> Result<(), ServiceError>;
+    async fn find_all_tokens<'a>(
+        &self,
+        limit: i64,
+        skip: &'a mut u64,
+    ) -> Result<Vec<Token>, ServiceError>;
+    async fn fetch_and_update_data(&self, token: &str) -> Result<(), ServiceError>;
+    async fn register_user(&self, tokens: &Token) -> Result<(), ServiceError>;
 }
 
 #[async_trait]
-pub trait CourseRepositoryInterface {
-    async fn save_courses(&self, token: &str, courses: &[Course]) -> Result<(), DbError>;
-    async fn find_courses_by_token(&self, token: &str) -> Result<Vec<Course>, DbError>;
+pub trait UserServiceAbstract {
+    async fn update_user(&self, token: &str) -> Result<User, ServiceError>;
+    async fn get_user(&self, token: &str) -> Result<User, ServiceError>;
 }
 
 #[async_trait]
-pub trait DeadlineRepositoryInterface {
-    async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<(), DbError>;
-    async fn find_deadlines_by_token(&self, token: &str) -> Result<Vec<Deadline>, DbError>;
+pub trait CourseServiceAbstract {
+    async fn get_courses(&self, token: &str) -> Result<Vec<Course>, ServiceError>;
+    async fn update_courses(&self, token: &str, user: &User) -> Result<Vec<Course>, ServiceError>;
 }
 
 #[async_trait]
-pub trait GradeRepositoryInterface {
-    async fn save_grades(&self, token: &str, grades: &[Grade]) -> Result<(), DbError>;
-    async fn find_grades_by_token(&self, token: &str) -> Result<Vec<Grade>, DbError>;
-    async fn save_grades_overview(
+pub trait GradeServiceAbstract {
+    async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, ServiceError>;
+    async fn fetch_grades(
         &self,
         token: &str,
-        grades_overview: &GradesOverview,
-    ) -> Result<(), DbError>;
-    async fn find_grades_overview_by_token(
+        user: &User,
+        courses: &[Course],
+    ) -> Result<Vec<Grade>, ServiceError>;
+    async fn update_grades(
         &self,
         token: &str,
-    ) -> Result<Vec<GradeOverview>, DbError>;
+        user: &User,
+        courses: &[Course],
+    ) -> Result<(), ServiceError>;
+    async fn get_grades_overview(&self, token: &str) -> Result<Vec<GradeOverview>, ServiceError>;
+    async fn fetch_grades_overview(
+        &self,
+        token: &str,
+        courses: &[Course],
+    ) -> Result<GradesOverview, ServiceError>;
+    async fn update_grades_overview(
+        &self,
+        token: &str,
+        courses: &[Course],
+    ) -> Result<(), ServiceError>;
+}
+
+#[async_trait]
+pub trait DeadlineServiceAbstract {
+    async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, ServiceError>;
+    async fn fetch_deadlines(
+        &self,
+        token: &str,
+        courses: &[Course],
+    ) -> Result<Vec<Deadline>, ServiceError>;
+    async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), ServiceError>;
 }
 
 pub struct DataService {
-    data_provider: Arc<dyn DataProviderInterface>,
-    data_repositories: Box<dyn RepositoryInterfaces>,
+    data_provider: Arc<dyn DataProviderAbstract>,
+    data_repositories: Box<dyn RepositoryAbstract>,
 }
 
 impl DataService {
     pub fn new(
-        data_provider: Arc<dyn DataProviderInterface>,
-        data_repositories: Box<dyn RepositoryInterfaces>,
+        data_provider: Arc<dyn DataProviderAbstract>,
+        data_repositories: Box<dyn RepositoryAbstract>,
     ) -> Self {
         Self {
             data_provider,
@@ -86,10 +113,10 @@ impl DataService {
     }
 }
 #[async_trait]
-impl DataServiceInterfaces for DataService {}
+impl DataServiceAbstract for DataService {}
 
 #[async_trait]
-impl TokenServiceInterface for DataService {
+impl TokenServiceAbstract for DataService {
     async fn delete_one_user(&self, token: &str) -> Result<(), ServiceError> {
         self.data_repositories.delete(token).await?;
         Ok(())
@@ -165,7 +192,7 @@ impl TokenServiceInterface for DataService {
 }
 
 #[async_trait]
-impl UserServiceInterface for DataService {
+impl UserServiceAbstract for DataService {
     async fn update_user(&self, token: &str) -> Result<User, ServiceError> {
         let user = self.data_provider.get_user(token).await?;
         self.data_repositories.save_user(&user, token).await?;
@@ -179,7 +206,7 @@ impl UserServiceInterface for DataService {
 }
 
 #[async_trait]
-impl CourseServiceInterface for DataService {
+impl CourseServiceAbstract for DataService {
     async fn get_courses(&self, token: &str) -> Result<Vec<Course>, ServiceError> {
         let courses = self.data_repositories.find_courses_by_token(token).await?;
         Ok(courses)
@@ -193,7 +220,7 @@ impl CourseServiceInterface for DataService {
 }
 
 #[async_trait]
-impl GradeServiceInterface for DataService {
+impl GradeServiceAbstract for DataService {
     async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, ServiceError> {
         let grades = self.data_repositories.find_grades_by_token(token).await?;
         Ok(grades)
@@ -274,7 +301,7 @@ impl GradeServiceInterface for DataService {
 }
 
 #[async_trait]
-impl DeadlineServiceInterface for DataService {
+impl DeadlineServiceAbstract for DataService {
     async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, ServiceError> {
         let deadlines = self
             .data_repositories

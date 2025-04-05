@@ -1,4 +1,5 @@
 pub mod app_setup;
-pub mod client;
+pub mod data_providers;
 pub mod db;
-pub mod notifications;
+pub mod notification_provider;
+pub mod repositories;

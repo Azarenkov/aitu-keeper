@@ -1,6 +1,9 @@
-use crate::models::token::Token;
-use crate::{controllers::shared::app_state::AppState, models::errors::ServiceError};
 use actix_web::{delete, get, post, web, HttpResponse, Responder};
+
+use crate::{
+    domain::entities::{errors::ServiceError, token::Token},
+    presentation::shared::app_state::AppState,
+};
 
 pub fn user_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(

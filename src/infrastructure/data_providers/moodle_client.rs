@@ -1,12 +1,16 @@
-use std::time::Duration;
-
-use crate::models::course::Course;
-use crate::models::deadline::Events;
-use crate::models::grade::{GradesOverview, UserGrades};
-use crate::models::user::User;
-use crate::services::provider_interfaces::DataProviderInterface;
 use async_trait::async_trait;
 use reqwest::Client;
+use std::time::Duration;
+
+use crate::domain::{
+    data_providers::data_provider_abstract::DataProviderAbstract,
+    entities::{
+        course::Course,
+        deadline::Events,
+        grade::{GradesOverview, UserGrades},
+        user::User,
+    },
+};
 
 use super::errors::ResponseError;
 
@@ -55,7 +59,7 @@ impl MoodleClient {
 }
 
 #[async_trait]
-impl DataProviderInterface for MoodleClient {
+impl DataProviderAbstract for MoodleClient {
     async fn get_user(&self, token: &str) -> Result<User, ResponseError> {
         let url = format!(
             "{}wstoken={}&wsfunction=core_webservice_get_site_info{}",

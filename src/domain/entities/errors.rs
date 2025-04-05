@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{infrastructure::client::errors::ResponseError, repositories::errors::DbError};
+use crate::infrastructure::{data_providers::errors::ResponseError, repositories::errors::DbError};
 
 #[derive(Error, Debug)]
 pub enum ServiceError {
@@ -13,8 +13,8 @@ pub enum ServiceError {
     #[error("Data not found for token: `{0}`")]
     DataNotFound(String),
 
-    #[error("Internal server error: `{0}`")]
-    InternalServerError(String),
+    #[error("Internal server error")]
+    InternalServerError,
 
     #[error("Reqwest error: `{0}`")]
     ReqwestError(String),
@@ -35,7 +35,7 @@ impl From<ResponseError> for ServiceError {
 impl From<DbError> for ServiceError {
     fn from(value: DbError) -> Self {
         match value {
-            DbError::InternalError(error) => Self::InternalServerError(error.to_string()),
+            DbError::InternalError(_) => Self::InternalServerError,
             DbError::SerializationError(error) => Self::DataNotFound(error.to_string()),
             DbError::DeserializationError(error) => Self::DataNotFound(error.to_string()),
             DbError::ValueAccessError(value_access_error) => {
@@ -65,7 +65,7 @@ impl From<ServiceError> for NotificationError {
             ServiceError::UserAlreadyExists(err) => Self::Data(err),
             ServiceError::InvalidToken(err) => Self::Data(err),
             ServiceError::DataNotFound(err) => Self::Data(err),
-            ServiceError::InternalServerError(err) => Self::Service(err),
+            ServiceError::InternalServerError => Self::Service("Internal service error".to_owned()),
             ServiceError::ReqwestError(err) => Self::Data(err),
             ServiceError::DeadlineSortingError(err) => Self::Data(err.to_string()),
         }

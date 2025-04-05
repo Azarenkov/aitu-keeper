@@ -1,5 +1,6 @@
-use crate::{controllers::shared::app_state::AppState, models::errors::ServiceError};
 use actix_web::{get, web, HttpResponse, Responder};
+
+use crate::{domain::entities::errors::ServiceError, presentation::shared::app_state::AppState};
 
 pub fn course_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::scope("/courses").service(get_courses));
