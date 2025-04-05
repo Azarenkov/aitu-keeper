@@ -124,7 +124,6 @@ impl TokenServiceInterface for DataService {
 
     async fn register_user(&self, tokens: &Token) -> Result<(), ServiceError> {
         self.data_provider.valid_token(&tokens.token).await?;
-
         self.data_repositories.find_token(tokens).await?;
 
         let user = self.data_provider.get_user(&tokens.token).await?;

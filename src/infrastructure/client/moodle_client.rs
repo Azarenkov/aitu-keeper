@@ -69,7 +69,8 @@ impl DataProviderInterface for MoodleClient {
             "{}wstoken={}&wsfunction=core_webservice_get_site_info{}",
             self.base_url, token, self.format
         );
-        self.send_request(&url, token).await
+        self.send_request::<User>(&url, token).await?;
+        Ok(())
     }
 
     async fn get_courses(&self, token: &str, user_id: i64) -> Result<Vec<Course>, ResponseError> {
