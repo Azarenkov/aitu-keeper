@@ -8,8 +8,9 @@ use crate::services::data_service::{
     RepositoryInterfaces, TokenRepositoryInterface, UserRepositoryInterface,
 };
 use async_trait::async_trait;
+use futures::TryStreamExt;
 use mongodb::bson::{doc, from_bson, to_bson, Bson, Document};
-use mongodb::{bson, Collection, Cursor};
+use mongodb::{bson, Collection};
 
 use super::errors::DbError;
 
@@ -43,15 +44,25 @@ impl TokenRepositoryInterface for DataRepository {
         Ok(())
     }
 
-    async fn find_all_device_tokens(
-        &self,
-        limit: i64,
-        skip: u64,
-    ) -> Result<Cursor<Document>, DbError> {
+    async fn find_all_device_tokens(&self, limit: i64, skip: u64) -> Result<Vec<Token>, DbError> {
         let filter = doc! {"_id": {"$exists": true}};
+        let mut batch = Vec::new();
 
-        let cursor = self.collection.find(filter).limit(limit).skip(skip).await?;
-        Ok(cursor)
+        let mut cursor = self.collection.find(filter).skip(skip).limit(limit).await?;
+
+        while let Some(doc) = cursor.try_next().await? {
+            if let Ok(token) = doc.get_str("_id") {
+                match doc.get_str("device_token") {
+                    Ok(device_token) => batch.push(Token::new(
+                        token.to_string(),
+                        Some(device_token.to_string()),
+                    )),
+                    Err(_) => batch.push(Token::new(token.to_string(), None)),
+                }
+            }
+        }
+
+        Ok(batch)
     }
 
     async fn delete(&self, token: &str) -> Result<(), DbError> {

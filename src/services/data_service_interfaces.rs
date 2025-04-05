@@ -6,8 +6,6 @@ use crate::models::token::Token;
 use crate::models::user::User;
 use async_trait::async_trait;
 use core::fmt::Debug;
-use mongodb::bson::Document;
-use mongodb::Cursor;
 
 #[async_trait]
 pub trait DataServiceInterfaces:
@@ -30,11 +28,11 @@ impl Debug for dyn DataServiceInterfaces {
 #[async_trait]
 pub trait TokenServiceInterface {
     async fn delete_one_user(&self, token: &str) -> Result<(), ServiceError>;
-    async fn find_all_tokens(
+    async fn find_all_tokens<'a>(
         &self,
         limit: i64,
-        skip: u64,
-    ) -> Result<Cursor<Document>, ServiceError>;
+        skip: &'a mut u64,
+    ) -> Result<Vec<Token>, ServiceError>;
     async fn fetch_and_update_data(&self, token: &str) -> Result<(), ServiceError>;
     async fn register_user(&self, tokens: &Token) -> Result<(), ServiceError>;
 }

@@ -12,8 +12,6 @@ use crate::services::data_service_interfaces::TokenServiceInterface;
 use crate::services::data_service_interfaces::UserServiceInterface;
 use crate::services::provider_interfaces::DataProviderInterface;
 use async_trait::async_trait;
-use mongodb::bson::Document;
-use mongodb::Cursor;
 use std::sync::Arc;
 
 use super::data_service_interfaces::DataServiceInterfaces;
@@ -34,11 +32,7 @@ pub trait RepositoryInterfaces:
 pub trait TokenRepositoryInterface {
     async fn find_token(&self, token: &Token) -> Result<(), DbError>;
     async fn save_tokens(&self, token: &Token) -> Result<(), DbError>;
-    async fn find_all_device_tokens(
-        &self,
-        limit: i64,
-        skip: u64,
-    ) -> Result<Cursor<Document>, DbError>;
+    async fn find_all_device_tokens(&self, limit: i64, skip: u64) -> Result<Vec<Token>, DbError>;
     async fn delete(&self, token: &str) -> Result<(), DbError>;
 }
 
@@ -101,16 +95,22 @@ impl TokenServiceInterface for DataService {
         Ok(())
     }
 
-    async fn find_all_tokens(
+    async fn find_all_tokens<'a>(
         &self,
         limit: i64,
-        skip: u64,
-    ) -> Result<Cursor<Document>, ServiceError> {
-        let cursor = self
+        skip: &'a mut u64,
+    ) -> Result<Vec<Token>, ServiceError> {
+        match self
             .data_repositories
-            .find_all_device_tokens(limit, skip)
-            .await?;
-        Ok(cursor)
+            .find_all_device_tokens(limit, *skip)
+            .await
+        {
+            Ok(batch) => Ok(batch),
+            Err(e) => {
+                *skip = 0;
+                Err(ServiceError::DataNotFound(e.to_string()))
+            }
+        }
     }
 
     async fn fetch_and_update_data(&self, token: &str) -> Result<(), ServiceError> {

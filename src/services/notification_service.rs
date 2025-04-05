@@ -5,7 +5,6 @@ use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_
 use crate::models::token::Token;
 use crate::models::user::User;
 use crate::services::provider_interfaces::{DataProviderInterface, NotificationProviderInterface};
-use futures_util::TryStreamExt;
 use log::warn;
 use std::sync::Arc;
 use tokio::task;
@@ -39,30 +38,8 @@ impl NotificationService {
         limit: i64,
         skip: &mut u64,
     ) -> Result<(), NotificationError> {
-        let mut batch = Vec::new();
+        let batch = self.data_service.find_all_tokens(limit, skip).await?;
 
-        let mut cursor = self.data_service.find_all_tokens(limit, *skip).await?;
-
-        let mut has_documents = false;
-
-        while let Some(doc) = cursor.try_next().await? {
-            has_documents = true;
-            if let Ok(token) = doc.get_str("_id") {
-                match doc.get_str("device_token") {
-                    Ok(device_token) => batch.push(Token::new(
-                        token.to_string(),
-                        Some(device_token.to_string()),
-                    )),
-                    Err(_) => batch.push(Token::new(token.to_string(), None)),
-                };
-                *skip += 1;
-            }
-        }
-
-        if !has_documents {
-            *skip = 0;
-            return Ok(());
-        }
         if let Err(e) = self.process_batch(&batch).await {
             warn!("Error processing batch: {}", e);
         }
