@@ -105,7 +105,10 @@ impl TokenServiceInterface for DataService {
             .find_all_device_tokens(limit, *skip)
             .await
         {
-            Ok(batch) => Ok(batch),
+            Ok(batch) => {
+                *skip = batch.len() as u64;
+                Ok(batch)
+            }
             Err(e) => {
                 *skip = 0;
                 Err(ServiceError::DataNotFound(e.to_string()))
