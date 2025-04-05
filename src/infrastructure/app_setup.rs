@@ -8,9 +8,9 @@ use crate::{
     },
 };
 use actix_web::web::Data;
-use anyhow::Result;
 use fcm_rs::client::FcmClient;
-use std::sync::Arc;
+use log::warn;
+use std::{error::Error, sync::Arc};
 
 use super::{
     client::moodle_client::MoodleClient, db::db_connection::connect,
@@ -22,7 +22,7 @@ pub struct AppDependencies {
     pub notification_service: NotificationService,
 }
 
-pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies> {
+pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies, Box<dyn Error>> {
     // Initialize Moodle client
     let moodle_client: Arc<dyn DataProviderInterface> = Arc::new(MoodleClient::new(
         config.base_url.clone(),
@@ -62,7 +62,7 @@ pub async fn spawn_background_tasks(
                 .get_batches(batch_size, &mut skip)
                 .await
             {
-                eprintln!("Error in sending notifications: {}", e);
+                warn!("Warning: {}", e);
             }
         }
     });

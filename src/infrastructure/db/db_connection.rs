@@ -1,3 +1,4 @@
+use log::info;
 use mongodb::bson::doc;
 use mongodb::options::{ClientOptions, ServerApi, ServerApiVersion};
 use mongodb::{Client, Database};
@@ -15,7 +16,7 @@ pub async fn connect(db_env: &str) -> mongodb::error::Result<Database> {
     let db = client.database("main");
 
     db.run_command(doc! { "ping": 1 }).await?;
-    println!("Pinged your deployment. You successfully connected to MongoDB!");
+    info!("Pinged your deployment. You successfully connected to MongoDB!");
 
     Ok(db)
 }

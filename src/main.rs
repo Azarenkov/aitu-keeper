@@ -1,3 +1,4 @@
+use actix_web::middleware::Logger;
 use actix_web::{guard, web, App, HttpResponse, HttpServer};
 use config::Config;
 use dotenv::dotenv;
@@ -39,6 +40,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
+            .wrap(Logger::new("%a %{User-Agent}i"))
             .app_data(app_state.clone())
             .configure(user_routes)
             .configure(course_routes)
