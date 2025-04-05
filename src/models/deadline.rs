@@ -1,6 +1,6 @@
 use std::collections::HashSet;
+use std::error::Error;
 
-use anyhow::Result;
 use chrono::Timelike;
 use chrono::{NaiveTime, Utc};
 use regex::Regex;
@@ -31,7 +31,9 @@ impl Deadline {
     }
 }
 
-pub fn sort_deadlines(deadlines: &mut [Deadline]) -> Result<Vec<Deadline>> {
+pub fn sort_deadlines(
+    deadlines: &mut [Deadline],
+) -> Result<Vec<Deadline>, Box<dyn Error + Send + Sync>> {
     let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(6 * 3600).unwrap());
     let current_unix_time = current_time.timestamp();
 
@@ -72,7 +74,7 @@ pub fn extract_time(date_str: &str) -> Option<String> {
     }
 }
 
-pub fn parse_time_to_seconds(time_str: &str) -> Result<i64> {
+pub fn parse_time_to_seconds(time_str: &str) -> Result<i64, Box<dyn Error + Send + Sync>> {
     let format = "%H:%M";
     let native_time = NaiveTime::parse_from_str(time_str, format)?;
     let seconds = native_time.num_seconds_from_midnight() as i64;
@@ -114,7 +116,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_time_to_seconds() -> Result<()> {
+    fn test_parse_time_to_seconds() -> Result<(), Box<dyn Error + Send + Sync>> {
         assert_eq!(parse_time_to_seconds("12:34")?, 45240);
         assert!(parse_time_to_seconds("Invalid time").is_err());
         Ok(())
@@ -181,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sort_deadlines_empty() -> Result<()> {
+    fn test_sort_deadlines_empty() -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut deadlines: Vec<Deadline> = Vec::new();
         let result = sort_deadlines(&mut deadlines)?;
         assert!(result.is_empty());
@@ -189,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn test_sort_deadlines_past_deadline() -> Result<()> {
+    fn test_sort_deadlines_past_deadline() -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut deadlines = vec![Deadline {
             id: 1,
             name: "Past Deadline".to_string(),

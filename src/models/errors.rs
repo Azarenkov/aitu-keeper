@@ -1,70 +1,88 @@
-use actix_web::HttpResponse;
-use serde::Serialize;
+use thiserror::Error;
 
-#[derive(Debug, Serialize)]
-pub enum ApiError {
-    UserAlreadyExists,
-    InvalidToken,
+use crate::{infrastructure::client::errors::ResponseError, repositories::errors::DbError};
 
-    UserNotFound,
-    CoursesNotFound,
-    GradesNotFound,
-    DeadlinesNotFound,
+#[derive(Error, Debug)]
+pub enum ServiceError {
+    #[error("User already exists with token: `{0}`")]
+    UserAlreadyExists(String),
 
-    UserDataIsEmpty,
-    CoursesAreEmpty,
-    GradesAreEmpty,
-    DeadlinesAreEmpty,
+    #[error("Invalid token: `{0}`")]
+    InvalidToken(String),
 
-    UserAlreadyDeleted,
+    #[error("Data not found for token: `{0}`")]
+    DataNotFound(String),
 
-    InternalServerError,
+    #[error("Internal server error: `{0}`")]
+    InternalServerError(String),
+
+    #[error("Reqwest error: `{0}`")]
+    ReqwestError(String),
+
+    #[error("Sorting deadline error: `{0}`")]
+    DeadlineSortingError(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
-impl ApiError {
-    pub fn as_http_response(&self) -> HttpResponse {
-        match self {
-            ApiError::UserAlreadyExists => HttpResponse::Accepted().json(self.to_string()),
-            ApiError::InvalidToken => HttpResponse::BadRequest().json(self.to_string()),
-            ApiError::UserAlreadyDeleted => HttpResponse::Gone().json(self.to_string()),
+impl From<ResponseError> for ServiceError {
+    fn from(value: ResponseError) -> Self {
+        match value {
+            ResponseError::ReqwestError(error) => Self::ReqwestError(error.to_string()),
+            ResponseError::InvalidToken(token) => Self::InvalidToken(token),
+        }
+    }
+}
 
-            ApiError::UserNotFound
-            | ApiError::CoursesNotFound
-            | ApiError::GradesNotFound
-            | ApiError::DeadlinesNotFound => HttpResponse::NotFound().json(self.to_string()),
-
-            ApiError::UserDataIsEmpty
-            | ApiError::CoursesAreEmpty
-            | ApiError::GradesAreEmpty
-            | ApiError::DeadlinesAreEmpty => HttpResponse::NoContent().json(self.to_string()),
-
-            _ => {
-                HttpResponse::InternalServerError().json(ApiError::InternalServerError.to_string())
+impl From<DbError> for ServiceError {
+    fn from(value: DbError) -> Self {
+        match value {
+            DbError::InternalError(error) => Self::InternalServerError(error.to_string()),
+            DbError::SerializationError(error) => Self::DataNotFound(error.to_string()),
+            DbError::DeserializationError(error) => Self::DataNotFound(error.to_string()),
+            DbError::ValueAccessError(value_access_error) => {
+                Self::DataNotFound(value_access_error.to_string())
             }
+            DbError::UserAlreadyExist(error) => Self::UserAlreadyExists(error),
+            DbError::DataNotFound(error) => Self::DataNotFound(error),
         }
     }
 }
 
-impl std::fmt::Display for ApiError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ApiError::UserAlreadyExists => write!(f, "User already exists"),
-            ApiError::InvalidToken => write!(f, "Invalid token"),
+#[derive(Error, Debug)]
+pub enum NotificationError {
+    #[error("Data error: `{0}`")]
+    Data(String),
 
-            ApiError::UserNotFound => write!(f, "User not found"),
-            ApiError::CoursesNotFound => write!(f, "Courses not found"),
-            ApiError::GradesNotFound => write!(f, "Grades not found"),
-            ApiError::DeadlinesNotFound => write!(f, "Deadlines not found"),
+    #[error("Service error: `{0}`")]
+    Service(String),
 
-            ApiError::UserDataIsEmpty => write!(f, "User data is empty"),
-            ApiError::CoursesAreEmpty => write!(f, "Courses are empty"),
-            ApiError::GradesAreEmpty => write!(f, "Grades are empty"),
-            ApiError::DeadlinesAreEmpty => write!(f, "Deadlines are empty"),
+    #[error("Sending error: `{0}`")]
+    Sending(String),
+}
 
-            ApiError::InternalServerError => write!(f, "Internal server error"),
-            ApiError::UserAlreadyDeleted => write! {f, "User already deleted"},
+impl From<ServiceError> for NotificationError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::UserAlreadyExists(err) => Self::Data(err),
+            ServiceError::InvalidToken(err) => Self::Data(err),
+            ServiceError::DataNotFound(err) => Self::Data(err),
+            ServiceError::InternalServerError(err) => Self::Service(err),
+            ServiceError::ReqwestError(err) => Self::Data(err),
+            ServiceError::DeadlineSortingError(err) => Self::Data(err.to_string()),
         }
     }
 }
 
-impl std::error::Error for ApiError {}
+impl From<mongodb::error::Error> for NotificationError {
+    fn from(value: mongodb::error::Error) -> Self {
+        Self::Service(value.to_string())
+    }
+}
+
+impl From<ResponseError> for NotificationError {
+    fn from(value: ResponseError) -> Self {
+        match value {
+            ResponseError::ReqwestError(error) => Self::Data(error.to_string()),
+            ResponseError::InvalidToken(token) => Self::Data(format!("for token {}", token)),
+        }
+    }
+}

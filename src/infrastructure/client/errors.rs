@@ -1,8 +1,9 @@
-// #[derive(serde::Serialize)]
-// pub struct ResponseError {
-//     exception: String,
-//     errorcode: String,
-//     message: String,
-// }
+use thiserror::Error;
 
-// enum ResponseErrors {}
+#[derive(Error, Debug)]
+pub enum ResponseError {
+    #[error("Reqwest error: `{0}`")]
+    ReqwestError(#[from] reqwest::Error),
+    #[error("Invalid token: `{0}`")]
+    InvalidToken(String),
+}

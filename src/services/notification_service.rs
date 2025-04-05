@@ -1,11 +1,10 @@
 use crate::models::course::{compare_courses, Course};
 use crate::models::deadline::{compare_deadlines, sort_deadlines};
-use crate::models::errors::ApiError;
+use crate::models::errors::NotificationError;
 use crate::models::grade::{compare_grades, compare_grades_overview, sort_grades_overview};
 use crate::models::token::Token;
 use crate::models::user::User;
 use crate::services::provider_interfaces::{DataProviderInterface, NotificationProviderInterface};
-use anyhow::Result;
 use futures_util::TryStreamExt;
 use std::sync::Arc;
 use tokio::task;
@@ -34,7 +33,11 @@ impl NotificationService {
 }
 
 impl NotificationService {
-    pub async fn get_batches(&'static self, limit: i64, skip: &mut u64) -> Result<()> {
+    pub async fn get_batches(
+        &'static self,
+        limit: i64,
+        skip: &mut u64,
+    ) -> Result<(), NotificationError> {
         let mut batch = Vec::new();
 
         let mut cursor = self.data_service.find_all_tokens(limit, *skip).await?;
@@ -65,7 +68,7 @@ impl NotificationService {
         Ok(())
     }
 
-    async fn process_batch(&'static self, batch: &[Token]) -> Result<()> {
+    async fn process_batch(&'static self, batch: &[Token]) -> Result<(), NotificationError> {
         let mut handles = Vec::new();
 
         for tokens in batch.iter() {
@@ -94,7 +97,11 @@ impl NotificationService {
         Ok(())
     }
 
-    async fn send_notification(&self, token: &str, device_token: &str) -> Result<()> {
+    async fn send_notification(
+        &self,
+        token: &str,
+        device_token: &str,
+    ) -> Result<(), NotificationError> {
         match self.send_user_info(token, device_token).await {
             Ok(user) => {
                 if let Ok(mut courses) = self.send_course(token, device_token, &user).await {
@@ -120,7 +127,11 @@ impl NotificationService {
         Ok(())
     }
 
-    async fn send_user_info(&self, token: &str, device_token: &str) -> Result<User> {
+    async fn send_user_info(
+        &self,
+        token: &str,
+        device_token: &str,
+    ) -> Result<User, NotificationError> {
         let external_user = self.data_provider.get_user(token).await?;
         let user = self.data_service.get_user(token).await?;
         if !user.eq(&external_user) {
@@ -131,7 +142,8 @@ impl NotificationService {
 
             self.notification_provider
                 .send_notification(message)
-                .await?;
+                .await
+                .map_err(|e| NotificationError::Sending(e.to_string()))?;
             self.data_service.update_user(token).await?;
         }
         Ok(external_user)
@@ -142,7 +154,7 @@ impl NotificationService {
         token: &str,
         device_token: &str,
         user: &User,
-    ) -> Result<Vec<Course>> {
+    ) -> Result<Vec<Course>, NotificationError> {
         let mut flag = false;
         let external_courses = self.data_provider.get_courses(token, user.userid).await?;
         let courses = self.data_service.get_courses(token).await?;
@@ -158,7 +170,8 @@ impl NotificationService {
                         .create_message(device_token, "New course", &body);
                 self.notification_provider
                     .send_notification(message)
-                    .await?;
+                    .await
+                    .map_err(|e| NotificationError::Sending(e.to_string()))?;
             }
         }
 
@@ -173,18 +186,14 @@ impl NotificationService {
         token: &str,
         device_token: &str,
         courses: &[Course],
-    ) -> Result<()> {
+    ) -> Result<(), NotificationError> {
         let mut flag = false;
         for course in courses {
-            let deadlines = match self.data_service.get_deadlines(token).await {
-                Ok(deadlines) => deadlines,
-                Err(e) => match e.downcast_ref::<ApiError>() {
-                    Some(ApiError::DeadlinesAreEmpty) => {
-                        vec![]
-                    }
-                    _ => return Err(e),
-                },
-            };
+            let deadlines = self
+                .data_service
+                .get_deadlines(token)
+                .await
+                .unwrap_or_default();
 
             let mut external_deadlines = self
                 .data_provider
@@ -200,7 +209,8 @@ impl NotificationService {
                 sorted_deadline.coursename = Option::from(course.fullname.clone());
             }
 
-            let sorted_deadlines = sort_deadlines(&mut external_deadlines)?;
+            let sorted_deadlines = sort_deadlines(&mut external_deadlines)
+                .map_err(|e| NotificationError::Data(e.to_string()))?;
             let new_deadlines = compare_deadlines(&sorted_deadlines, &deadlines);
 
             if !new_deadlines.is_empty() {
@@ -214,7 +224,8 @@ impl NotificationService {
                     );
                     self.notification_provider
                         .send_notification(message)
-                        .await?
+                        .await
+                        .map_err(|e| NotificationError::Sending(e.to_string()))?
                 }
             }
         }
@@ -232,7 +243,7 @@ impl NotificationService {
         device_token: &str,
         user: &User,
         courses: &[Course],
-    ) -> Result<()> {
+    ) -> Result<(), NotificationError> {
         let mut flag = false;
         let past_grades = self.data_service.get_grades(token).await?;
 
@@ -288,7 +299,8 @@ impl NotificationService {
                             .create_message(device_token, &title, &body);
                     self.notification_provider
                         .send_notification(message)
-                        .await?
+                        .await
+                        .map_err(|e| NotificationError::Sending(e.to_string()))?
                 }
             }
         }
@@ -306,7 +318,7 @@ impl NotificationService {
         token: &str,
         device_token: &str,
         courses: &[Course],
-    ) -> Result<()> {
+    ) -> Result<(), NotificationError> {
         let mut flag = false;
         let mut external_grades_overview = self.data_provider.get_grades_overview(token).await?;
 
@@ -337,7 +349,8 @@ impl NotificationService {
                         .create_message(device_token, &title, &body);
                 self.notification_provider
                     .send_notification(message)
-                    .await?
+                    .await
+                    .map_err(|e| NotificationError::Sending(e.to_string()))?
             }
         }
         if flag {
