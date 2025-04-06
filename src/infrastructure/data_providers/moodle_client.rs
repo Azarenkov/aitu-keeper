@@ -42,13 +42,17 @@ impl MoodleClient {
         loop {
             let response = self.client.get(url).send().await;
             match response {
-                Ok(value) => match value.json::<T>().await {
-                    Ok(value) => return Ok(value),
-                    Err(e) => {
-                        warn!("{}", e);
-                        return Err(ResponseError::InvalidToken(token.to_string()));
+                Ok(resp) => {
+                    let body_text = resp.text().await.map_err(ResponseError::ReqwestError)?;
+                    match serde_json::from_str::<T>(&body_text) {
+                        Ok(value) => return Ok(value),
+                        Err(e) => {
+                            warn!("{}", e);
+                            warn!("{:?}", body_text);
+                            return Err(ResponseError::InvalidToken(token.to_string()));
+                        }
                     }
-                },
+                }
                 Err(e) => {
                     if attempt >= 2 {
                         return Err(e.into());
@@ -57,7 +61,6 @@ impl MoodleClient {
             }
             attempt += 1;
             tokio::time::sleep(Duration::from_secs(2)).await;
-            continue;
         }
     }
 }
