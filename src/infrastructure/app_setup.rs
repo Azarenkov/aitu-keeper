@@ -63,8 +63,6 @@ pub async fn spawn_background_tasks(
     tokio::spawn(async move {
         let mut skip = 0;
         loop {
-            println!("{}", skip);
-
             if let Err(e) = notification_service
                 .get_batches(batch_size, &mut skip)
                 .await

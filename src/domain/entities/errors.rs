@@ -1,7 +1,5 @@
 use thiserror::Error;
 
-use crate::infrastructure::{data_providers::errors::ResponseError, repositories::errors::DbError};
-
 #[derive(Error, Debug)]
 pub enum ServiceError {
     #[error("User already exists with token: `{0}`")]
@@ -21,30 +19,6 @@ pub enum ServiceError {
 
     #[error("Sorting deadline error: `{0}`")]
     DeadlineSortingError(#[from] Box<dyn std::error::Error + Send + Sync>),
-}
-
-impl From<ResponseError> for ServiceError {
-    fn from(value: ResponseError) -> Self {
-        match value {
-            ResponseError::ReqwestError(error) => Self::ReqwestError(error.to_string()),
-            ResponseError::InvalidToken(token) => Self::InvalidToken(token),
-        }
-    }
-}
-
-impl From<DbError> for ServiceError {
-    fn from(value: DbError) -> Self {
-        match value {
-            DbError::InternalError(_) => Self::InternalServerError,
-            DbError::SerializationError(error) => Self::DataNotFound(error.to_string()),
-            DbError::DeserializationError(error) => Self::DataNotFound(error.to_string()),
-            DbError::ValueAccessError(value_access_error) => {
-                Self::DataNotFound(value_access_error.to_string())
-            }
-            DbError::UserAlreadyExist(error) => Self::UserAlreadyExists(error),
-            DbError::DataNotFound(error) => Self::DataNotFound(error),
-        }
-    }
 }
 
 #[derive(Error, Debug)]
@@ -68,21 +42,6 @@ impl From<ServiceError> for NotificationError {
             ServiceError::InternalServerError => Self::Service("Internal service error".to_owned()),
             ServiceError::ReqwestError(err) => Self::Data(err),
             ServiceError::DeadlineSortingError(err) => Self::Data(err.to_string()),
-        }
-    }
-}
-
-impl From<mongodb::error::Error> for NotificationError {
-    fn from(value: mongodb::error::Error) -> Self {
-        Self::Service(value.to_string())
-    }
-}
-
-impl From<ResponseError> for NotificationError {
-    fn from(value: ResponseError) -> Self {
-        match value {
-            ResponseError::ReqwestError(error) => Self::Data(error.to_string()),
-            ResponseError::InvalidToken(token) => Self::Data(format!("for token {}", token)),
         }
     }
 }

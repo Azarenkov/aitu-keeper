@@ -1,10 +1,11 @@
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, guard, web, HttpResponse, Responder};
 
 use crate::{domain::entities::errors::ServiceError, presentation::shared::app_state::AppState};
 
 pub fn grade_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/grades")
+            .guard(guard::Get())
             .service(get_grades)
             .service(get_grades_overview),
     );

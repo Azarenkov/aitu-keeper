@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::warn;
 use reqwest::Client;
 use std::time::Duration;
 
@@ -43,7 +44,10 @@ impl MoodleClient {
             match response {
                 Ok(value) => match value.json::<T>().await {
                     Ok(value) => return Ok(value),
-                    Err(_) => return Err(ResponseError::InvalidToken(token.to_string())),
+                    Err(e) => {
+                        warn!("{}", e);
+                        return Err(ResponseError::InvalidToken(token.to_string()));
+                    }
                 },
                 Err(e) => {
                     if attempt >= 2 {

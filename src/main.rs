@@ -1,5 +1,5 @@
 use actix_web::middleware::Logger;
-use actix_web::{guard, web, App, HttpResponse, HttpServer};
+use actix_web::{web, App, HttpResponse, HttpServer};
 use config::Config;
 use domain::services::notification_service::NotificationService;
 use dotenv::dotenv;
@@ -43,11 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .configure(course_routes)
             .configure(grade_routes)
             .configure(deadline_routes)
-            .default_service(
-                web::route()
-                    .guard(guard::Not(guard::Get()))
-                    .to(HttpResponse::MethodNotAllowed),
-            )
+            .default_service(web::to(HttpResponse::MethodNotAllowed))
     })
     .bind(address)?
     .run()
