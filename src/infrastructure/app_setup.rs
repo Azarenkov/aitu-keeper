@@ -81,6 +81,8 @@ pub async fn spawn_deadline_cleaner_worker(data_service: Arc<dyn DataServiceAbst
 
             if let Err(e) = data_service.remove_expired_deadlines().await {
                 warn!(" Failed to clean deadlines: {}", e);
+            } else {
+                info!("Deadline cleaner worker finished process");
             }
             tokio::time::sleep(time::Duration::from_secs(22000)).await;
         }
