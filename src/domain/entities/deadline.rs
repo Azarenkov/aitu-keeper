@@ -40,7 +40,7 @@ pub fn sort_deadlines(
     let mut sorted_deadlines = Vec::new();
 
     for deadline in deadlines.iter_mut() {
-        if deadline.timeusermidnight + 86400 < current_unix_time {
+        if deadline.timeusermidnight + 21600 < current_unix_time {
             continue;
         }
         let seconds_after_mid;

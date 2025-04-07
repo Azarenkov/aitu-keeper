@@ -29,6 +29,7 @@ impl ResponseError for ServiceError {
             ServiceError::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
             ServiceError::ReqwestError(_) => StatusCode::NOT_FOUND,
             ServiceError::DeadlineSortingError(_) => StatusCode::NOT_FOUND,
+            ServiceError::SystemTime(_) => StatusCode::NOT_FOUND,
         }
     }
 }

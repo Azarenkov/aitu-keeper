@@ -49,9 +49,7 @@ impl NotificationService {
     ) -> Result<(), NotificationError> {
         let batch = self.data_service.find_all_tokens(limit, skip).await?;
 
-        if let Err(e) = self.process_batch(&batch).await {
-            warn!("Error processing batch: {}", e);
-        }
+        self.process_batch(&batch).await?;
         Ok(())
     }
 
@@ -89,28 +87,15 @@ impl NotificationService {
         token: &str,
         device_token: &str,
     ) -> Result<(), NotificationError> {
-        match self.send_user_info(token, device_token).await {
-            Ok(user) => {
-                if let Ok(mut courses) = self.send_course(token, device_token, &user).await {
-                    if let Err(e) = self.send_grade(token, device_token, &user, &courses).await {
-                        warn!("Error sending grade: {:?}", e);
-                    }
-                    if let Err(e) = self
-                        .send_grade_overview(token, device_token, &courses)
-                        .await
-                    {
-                        warn!("Error sending grade overview: {:?}", e);
-                    }
-                    Course::delete_past_courses(&mut courses);
-                    if let Err(e) = self.send_deadline(token, device_token, &courses).await {
-                        warn!("Error sending deadline: {:?}", e);
-                    }
-                }
-            }
-            Err(e) => {
-                warn!("Error sending user info: {:?}", e);
-            }
-        }
+        let user = self.send_user_info(token, device_token).await?;
+        let mut courses = self.send_course(token, device_token, &user).await?;
+        self.send_grade(token, device_token, &user, &courses)
+            .await?;
+        self.send_grade_overview(token, device_token, &courses)
+            .await?;
+        Course::delete_past_courses(&mut courses);
+        self.send_deadline(token, device_token, &courses).await?;
+
         Ok(())
     }
 

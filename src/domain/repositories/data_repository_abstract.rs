@@ -47,6 +47,7 @@ pub trait CourseRepositoryAbstract {
 pub trait DeadlineRepositoryAbstract {
     async fn save_deadlines(&self, token: &str, deadlines: &[Deadline]) -> Result<(), DbError>;
     async fn find_deadlines_by_token(&self, token: &str) -> Result<Vec<Deadline>, DbError>;
+    async fn delete_expired_deadlines(&self, unix_date: u64) -> Result<(), DbError>;
 }
 
 #[async_trait]

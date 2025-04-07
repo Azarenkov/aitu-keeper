@@ -19,6 +19,9 @@ pub enum ServiceError {
 
     #[error("Sorting deadline error: `{0}`")]
     DeadlineSortingError(#[from] Box<dyn std::error::Error + Send + Sync>),
+
+    #[error("System time error: `{0}`")]
+    SystemTime(#[from] std::time::SystemTimeError),
 }
 
 #[derive(Error, Debug)]
@@ -42,6 +45,9 @@ impl From<ServiceError> for NotificationError {
             ServiceError::InternalServerError => Self::Service("Internal service error".to_owned()),
             ServiceError::ReqwestError(err) => Self::Data(err),
             ServiceError::DeadlineSortingError(err) => Self::Data(err.to_string()),
+            ServiceError::SystemTime(system_time_error) => {
+                Self::Data(system_time_error.to_string())
+            }
         }
     }
 }

@@ -1,8 +1,9 @@
+use core::time;
 use std::{error::Error, sync::Arc};
 
 use actix_web::web::Data;
 use fcm_rs::client::FcmClient;
-use log::warn;
+use log::{info, warn};
 
 use crate::{
     config::Config,
@@ -56,7 +57,7 @@ pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies,
     })
 }
 
-pub async fn spawn_background_tasks(
+pub async fn spawn_notification_worker(
     notification_service: &'static NotificationService,
     batch_size: i64,
 ) {
@@ -67,8 +68,21 @@ pub async fn spawn_background_tasks(
                 .get_batches(batch_size, &mut skip)
                 .await
             {
-                warn!("Warning: {}", e);
+                warn!("Warning in notification worker: {}", e);
             }
+        }
+    });
+}
+
+pub async fn spawn_deadline_cleaner_worker(data_service: Arc<dyn DataServiceAbstract>) {
+    tokio::spawn(async move {
+        loop {
+            info!("Deadline cleaner worker started");
+
+            if let Err(e) = data_service.remove_expired_deadlines().await {
+                warn!(" Failed to clean deadlines: {}", e);
+            }
+            tokio::time::sleep(time::Duration::from_secs(22000)).await;
         }
     });
 }

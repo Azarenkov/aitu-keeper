@@ -1,6 +1,9 @@
 use async_trait::async_trait;
 use core::fmt::Debug;
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::domain::{
     data_providers::data_provider_abstract::DataProviderAbstract,
@@ -94,6 +97,7 @@ pub trait DeadlineServiceAbstract {
         courses: &[Course],
     ) -> Result<Vec<Deadline>, ServiceError>;
     async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), ServiceError>;
+    async fn remove_expired_deadlines(&self) -> Result<(), ServiceError>;
 }
 
 pub struct DataService {
@@ -336,6 +340,14 @@ impl DeadlineServiceAbstract for DataService {
         let deadlines = self.fetch_deadlines(token, courses).await?;
         self.data_repositories
             .save_deadlines(token, &deadlines)
+            .await?;
+        Ok(())
+    }
+
+    async fn remove_expired_deadlines(&self) -> Result<(), ServiceError> {
+        let unix_date = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() + 21600;
+        self.data_repositories
+            .delete_expired_deadlines(unix_date)
             .await?;
         Ok(())
     }

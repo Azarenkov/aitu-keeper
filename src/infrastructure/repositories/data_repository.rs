@@ -222,4 +222,20 @@ impl DeadlineRepositoryAbstract for DataRepository {
         let deadlines = from_bson::<Vec<Deadline>>(bson)?;
         Ok(deadlines)
     }
+
+    async fn delete_expired_deadlines(&self, unix_date: u64) -> Result<(), DbError> {
+        self.collection
+            .update_many(
+                doc! {},
+                doc! {
+                    "$pull": {
+                        "deadlines": {
+                            "timeusermidnight": { "$lt": unix_date as i64 }
+                        }
+                    }
+                },
+            )
+            .await?;
+        Ok(())
+    }
 }
