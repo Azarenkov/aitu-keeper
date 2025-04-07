@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use log::warn;
 use reqwest::Client;
 use std::time::Duration;
 
@@ -44,11 +43,15 @@ impl MoodleClient {
             match response {
                 Ok(resp) => {
                     let body_text = resp.text().await.map_err(ResponseError::ReqwestError)?;
+                    if body_text.is_empty() {
+                        return Err(ResponseError::EmptyBody(format!(
+                            "Empty response from Moodle: {}",
+                            body_text
+                        )));
+                    };
                     match serde_json::from_str::<T>(&body_text) {
                         Ok(value) => return Ok(value),
-                        Err(e) => {
-                            warn!("{}", e);
-                            warn!("{:?}", body_text);
+                        Err(_) => {
                             return Err(ResponseError::InvalidToken(token.to_string()));
                         }
                     }
