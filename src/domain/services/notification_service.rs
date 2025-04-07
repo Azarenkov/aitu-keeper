@@ -62,11 +62,11 @@ impl NotificationService {
             let handle = task::spawn(async move {
                 if let Some(device_token) = &tokens.device_token {
                     if let Err(e) = self.send_notification(&tokens.token, device_token).await {
-                        warn!("Error sending notification: {:?}", e);
+                        warn!("Error sending notification: {:?}", e.to_string());
                     }
                 } else if let Err(e) = self.data_service.fetch_and_update_data(&tokens.token).await
                 {
-                    warn!("Error fetching and saving data: {:?}", e);
+                    warn!("Error fetching and saving data: {:?}", e.to_string());
                 }
             });
 

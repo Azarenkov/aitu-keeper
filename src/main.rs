@@ -24,6 +24,7 @@ static NOTIFICATION_SERVICE: OnceCell<NotificationService> = OnceCell::const_new
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    console_subscriber::init();
     dotenv().ok();
     env_logger::init();
 

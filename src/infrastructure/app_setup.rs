@@ -68,7 +68,7 @@ pub async fn spawn_notification_worker(
                 .get_batches(batch_size, &mut skip)
                 .await
             {
-                warn!("Warning in notification worker: {}", e);
+                warn!("Warning in notification worker: {}", e.to_string());
             }
         }
     });
@@ -80,7 +80,7 @@ pub async fn spawn_deadline_cleaner_worker(data_service: Arc<dyn DataServiceAbst
             info!("Deadline cleaner worker started");
 
             if let Err(e) = data_service.remove_expired_deadlines().await {
-                warn!(" Failed to clean deadlines: {}", e);
+                warn!(" Failed to clean deadlines: {}", e.to_string());
             } else {
                 info!("Deadline cleaner worker finished process");
             }
