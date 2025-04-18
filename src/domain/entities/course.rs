@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct Course {
     pub id: i64,
     pub fullname: String,
-    enddate: i64,
+    pub enddate: i64,
 }
 
 impl Course {

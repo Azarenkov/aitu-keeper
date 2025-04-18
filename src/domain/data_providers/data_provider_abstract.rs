@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use core::fmt::Debug;
+use mockall::automock;
 
 use crate::{
     domain::entities::{
@@ -11,6 +12,7 @@ use crate::{
     infrastructure::data_providers::errors::ResponseError,
 };
 
+#[automock]
 #[async_trait]
 pub trait DataProviderAbstract: Send + Sync {
     async fn get_user(&self, token: &str) -> Result<User, ResponseError>;

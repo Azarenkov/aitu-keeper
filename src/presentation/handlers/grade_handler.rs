@@ -17,7 +17,7 @@ async fn get_grades(
     app_state: web::Data<AppState>,
 ) -> Result<impl Responder, ServiceError> {
     let grades = app_state
-        .data_service
+        .grade_service
         .get_grades(&token.into_inner())
         .await?;
     Ok(HttpResponse::Ok().json(grades))
@@ -29,7 +29,7 @@ async fn get_grades_overview(
     app_state: web::Data<AppState>,
 ) -> Result<impl Responder, ServiceError> {
     let grades = app_state
-        .data_service
+        .grade_service
         .get_grades_overview(&token.into_inner())
         .await?;
     Ok(HttpResponse::Ok().json(grades))

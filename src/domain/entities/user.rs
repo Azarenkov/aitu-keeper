@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct User {
-    username: String,
-    fullname: String,
+    pub username: String,
+    pub fullname: String,
     pub userid: i64,
 }
 

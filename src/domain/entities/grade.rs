@@ -14,7 +14,7 @@ pub struct Grade {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct GradeItems {
-    id: i64,
+    pub id: i64,
     pub itemname: String,
     pub percentageformatted: String,
 }
@@ -29,7 +29,7 @@ pub struct GradeOverview {
     pub course_name: Option<String>,
     pub courseid: i64,
     pub grade: String,
-    rawgrade: Option<String>,
+    pub rawgrade: Option<String>,
 }
 
 pub fn compare_grades<'a>(

@@ -16,7 +16,7 @@ async fn get_deadlines(
     app_state: web::Data<AppState>,
 ) -> Result<impl Responder, ServiceError> {
     let deadlines = app_state
-        .data_service
+        .deadline_service
         .get_deadlines(&token.into_inner())
         .await?;
     Ok(HttpResponse::Ok().json(deadlines))

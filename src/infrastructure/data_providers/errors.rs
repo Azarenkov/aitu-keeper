@@ -6,8 +6,10 @@ use crate::domain::entities::errors::{NotificationError, ServiceError};
 pub enum ResponseError {
     #[error("Reqwest error: `{0}`")]
     ReqwestError(#[from] reqwest::Error),
+
     #[error("Invalid token: `{0}`")]
     InvalidToken(String),
+
     #[error("Empty body: `{0}`")]
     EmptyBody(String),
 }

@@ -16,6 +16,6 @@ async fn get_courses(
     app_state: web::Data<AppState>,
 ) -> Result<impl Responder, ServiceError> {
     let token = token.into_inner();
-    let courses = app_state.data_service.get_courses(&token).await?;
+    let courses = app_state.course_service.get_courses(&token).await?;
     Ok(HttpResponse::Ok().json(courses))
 }

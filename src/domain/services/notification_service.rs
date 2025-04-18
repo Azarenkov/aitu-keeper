@@ -18,25 +18,41 @@ use crate::domain::{
     },
 };
 
-use super::data_service::DataServiceAbstract;
+use super::{
+    course_service::CourseServiceAbstract, deadline_service::DeadlineServiceAbstract,
+    grade_service::GradeServiceAbstract, token_service::TokenServiceAbstract,
+    user_service::UserServiceAbstract,
+};
 
 #[derive(Debug)]
 pub struct NotificationService {
     notification_provider: Arc<dyn NotificationProviderAbstract>,
     data_provider: Arc<dyn DataProviderAbstract>,
-    data_service: Arc<dyn DataServiceAbstract>,
+    token_service: Arc<dyn TokenServiceAbstract>,
+    user_service: Arc<dyn UserServiceAbstract>,
+    course_service: Arc<dyn CourseServiceAbstract>,
+    grade_service: Arc<dyn GradeServiceAbstract>,
+    deadline_service: Arc<dyn DeadlineServiceAbstract>,
 }
 
 impl NotificationService {
     pub fn new(
         notification_provider: Arc<dyn NotificationProviderAbstract>,
         data_provider: Arc<dyn DataProviderAbstract>,
-        data_service: Arc<dyn DataServiceAbstract>,
+        token_service: Arc<dyn TokenServiceAbstract>,
+        user_service: Arc<dyn UserServiceAbstract>,
+        course_service: Arc<dyn CourseServiceAbstract>,
+        grade_service: Arc<dyn GradeServiceAbstract>,
+        deadline_service: Arc<dyn DeadlineServiceAbstract>,
     ) -> Self {
         Self {
             notification_provider,
             data_provider,
-            data_service,
+            token_service,
+            user_service,
+            course_service,
+            grade_service,
+            deadline_service,
         }
     }
 }
@@ -47,7 +63,7 @@ impl NotificationService {
         limit: i64,
         skip: &mut u64,
     ) -> Result<(), NotificationError> {
-        let batch = self.data_service.find_all_tokens(limit, skip).await?;
+        let batch = self.token_service.find_all_tokens(limit, skip).await?;
 
         self.process_batch(&batch).await?;
         Ok(())
@@ -64,7 +80,10 @@ impl NotificationService {
                     if let Err(e) = self.send_notification(&tokens.token, device_token).await {
                         warn!("Error sending notification: {:?}", e.to_string());
                     }
-                } else if let Err(e) = self.data_service.fetch_and_update_data(&tokens.token).await
+                } else if let Err(e) = self
+                    .token_service
+                    .fetch_and_update_data(&tokens.token)
+                    .await
                 {
                     warn!("Error fetching and saving data: {:?}", e.to_string());
                 }
@@ -105,7 +124,7 @@ impl NotificationService {
         device_token: &str,
     ) -> Result<User, NotificationError> {
         let external_user = self.data_provider.get_user(token).await?;
-        let user = self.data_service.get_user(token).await?;
+        let user = self.user_service.get_user(token).await?;
         if !user.eq(&external_user) {
             let body = external_user.create_body_message_user();
             let message =
@@ -116,7 +135,7 @@ impl NotificationService {
                 .send_notification(message)
                 .await
                 .map_err(|e| NotificationError::Sending(e.to_string()))?;
-            self.data_service.update_user(token).await?;
+            self.user_service.update_user(token).await?;
         }
         Ok(external_user)
     }
@@ -129,7 +148,7 @@ impl NotificationService {
     ) -> Result<Vec<Course>, NotificationError> {
         let mut flag = false;
         let external_courses = self.data_provider.get_courses(token, user.userid).await?;
-        let courses = self.data_service.get_courses(token).await?;
+        let courses = self.course_service.get_courses(token).await?;
         let new_courses = compare_courses(&external_courses, &courses);
 
         if !new_courses.is_empty() {
@@ -148,7 +167,7 @@ impl NotificationService {
         }
 
         if flag {
-            self.data_service.update_courses(token, user).await?;
+            self.course_service.update_courses(token, user).await?;
         }
         Ok(external_courses)
     }
@@ -162,7 +181,7 @@ impl NotificationService {
         let mut flag = false;
         for course in courses {
             let deadlines = self
-                .data_service
+                .deadline_service
                 .get_deadlines(token)
                 .await
                 .unwrap_or_default();
@@ -203,7 +222,9 @@ impl NotificationService {
         }
 
         if flag {
-            self.data_service.update_deadlines(token, courses).await?;
+            self.deadline_service
+                .update_deadlines(token, courses)
+                .await?;
         }
 
         Ok(())
@@ -217,14 +238,14 @@ impl NotificationService {
         courses: &[Course],
     ) -> Result<(), NotificationError> {
         let mut flag = false;
-        let past_grades = self.data_service.get_grades(token).await?;
+        let past_grades = self.grade_service.get_grades(token).await?;
 
         let all_courses_in_grades = courses
             .iter()
             .all(|course| past_grades.iter().any(|grade| grade.courseid == course.id));
 
         if !all_courses_in_grades {
-            self.data_service
+            self.grade_service
                 .update_grades(token, user, courses)
                 .await?;
         }
@@ -240,14 +261,14 @@ impl NotificationService {
                 external_grade.coursename = Option::from(course.fullname.clone());
             }
 
-            let mut grades = self.data_service.get_grades(token).await?;
+            let mut grades = self.grade_service.get_grades(token).await?;
 
             for external_grade in external_grades.iter() {
                 for grade in grades.iter() {
                     if external_grade.courseid == grade.courseid
                         && external_grade.gradeitems.len() != grade.gradeitems.len()
                     {
-                        self.data_service
+                        self.grade_service
                             .update_grades(token, user, courses)
                             .await?;
                     }
@@ -277,7 +298,7 @@ impl NotificationService {
             }
         }
         if flag {
-            self.data_service
+            self.grade_service
                 .update_grades(token, user, courses)
                 .await?;
         }
@@ -303,7 +324,7 @@ impl NotificationService {
         }
         sort_grades_overview(&mut external_grades_overview.grades);
 
-        let mut grades_overview = self.data_service.get_grades_overview(token).await?;
+        let mut grades_overview = self.grade_service.get_grades_overview(token).await?;
         sort_grades_overview(&mut grades_overview);
 
         let new_external_grades =
@@ -326,7 +347,7 @@ impl NotificationService {
             }
         }
         if flag {
-            self.data_service
+            self.grade_service
                 .update_grades_overview(token, courses)
                 .await?;
         }

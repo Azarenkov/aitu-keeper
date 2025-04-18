@@ -19,7 +19,7 @@ async fn create_user(
     token: web::Json<Token>,
     app_state: web::Data<AppState>,
 ) -> Result<impl Responder, ServiceError> {
-    app_state.data_service.register_user(&token).await?;
+    app_state.token_service.register_user(&token).await?;
     Ok(HttpResponse::Ok().json("User was created"))
 }
 
@@ -28,7 +28,7 @@ async fn get_user(
     token: web::Path<String>,
     app_state: web::Data<AppState>,
 ) -> Result<impl Responder, ServiceError> {
-    let user = app_state.data_service.get_user(&token.into_inner()).await?;
+    let user = app_state.user_service.get_user(&token.into_inner()).await?;
     Ok(HttpResponse::Ok().json(user))
 }
 
@@ -37,6 +37,6 @@ async fn delete_user(
     token: web::Path<String>,
     app_state: web::Data<AppState>,
 ) -> Result<impl Responder, ServiceError> {
-    app_state.data_service.delete_one_user(&token).await?;
+    app_state.token_service.delete_one_user(&token).await?;
     Ok(HttpResponse::Ok().json("User was deleted"))
 }

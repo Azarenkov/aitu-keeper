@@ -10,11 +10,12 @@ use crate::domain::entities::token::Token;
 use crate::domain::entities::user::User;
 use crate::domain::repositories::data_repository_abstract::{
     CourseRepositoryAbstract, DeadlineRepositoryAbstract, GradeRepositoryAbstract,
-    RepositoryAbstract, TokenRepositoryAbstract, UserRepositoryAbstract,
+    TokenRepositoryAbstract, UserRepositoryAbstract,
 };
 
 use super::errors::DbError;
 
+#[derive(Debug)]
 pub struct DataRepository {
     collection: Collection<Document>,
 }
@@ -24,9 +25,6 @@ impl DataRepository {
         Self { collection }
     }
 }
-
-#[async_trait]
-impl RepositoryAbstract for DataRepository {}
 
 #[async_trait]
 impl TokenRepositoryAbstract for DataRepository {

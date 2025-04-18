@@ -44,10 +44,9 @@ impl MoodleClient {
                 Ok(resp) => {
                     let body_text = resp.text().await.map_err(ResponseError::ReqwestError)?;
                     if body_text.is_empty() {
-                        return Err(ResponseError::EmptyBody(format!(
-                            "Empty response from Moodle: {}",
-                            body_text
-                        )));
+                        return Err(ResponseError::EmptyBody(
+                            "Empty response from Moodle".to_owned(),
+                        ));
                     };
                     match serde_json::from_str::<T>(&body_text) {
                         Ok(value) => return Ok(value),
