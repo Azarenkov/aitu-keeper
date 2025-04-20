@@ -1,50 +1,54 @@
-use std::{fmt::Debug, sync::Arc};
-
-use async_trait::async_trait;
+use std::sync::Arc;
 
 use crate::domain::{
     data_providers::data_provider_abstract::DataProviderAbstract,
     entities::{errors::ServiceError, token::Token},
-    repositories::data_repository_abstract::TokenRepositoryAbstract,
+    repositories::data_repository_abstract::{
+        CourseRepositoryAbstract, DeadlineRepositoryAbstract, GradeRepositoryAbstract,
+        TokenRepositoryAbstract, UserRepositoryAbstract,
+    },
 };
 
 use super::{
-    course_service::{CourseService, CourseServiceAbstract},
-    deadline_service::{DeadlineService, DeadlineServiceAbstract},
-    grade_service::{GradeService, GradeServiceAbstract},
-    user_service::{UserService, UserServiceAbstract},
+    course_service::CourseService, deadline_service::DeadlineService, grade_service::GradeService,
+    user_service::UserService,
 };
 
-#[async_trait]
-pub trait TokenServiceAbstract: Send + Sync + Debug {
-    async fn delete_one_user(&self, token: &str) -> Result<(), ServiceError>;
-    async fn find_all_tokens<'a>(
-        &self,
-        limit: i64,
-        skip: &'a mut u64,
-    ) -> Result<Vec<Token>, ServiceError>;
-    async fn fetch_and_update_data(&self, token: &str) -> Result<(), ServiceError>;
-    async fn register_user(&self, tokens: &Token) -> Result<(), ServiceError>;
-}
-
 #[derive(Debug)]
-pub struct TokenService {
-    data_provider: Arc<dyn DataProviderAbstract>,
-    token_repository: Arc<dyn TokenRepositoryAbstract>,
-    user_service: Arc<UserService>,
-    course_service: Arc<CourseService>,
-    grade_service: Arc<GradeService>,
-    deadline_service: Arc<DeadlineService>,
+pub struct TokenService<DataProvider, TokenRepo, UserRepo, CourseRepo, GradeRepo, DeadlineRepo>
+where
+    DataProvider: DataProviderAbstract,
+    TokenRepo: TokenRepositoryAbstract,
+    UserRepo: UserRepositoryAbstract,
+    CourseRepo: CourseRepositoryAbstract,
+    GradeRepo: GradeRepositoryAbstract,
+    DeadlineRepo: DeadlineRepositoryAbstract,
+{
+    data_provider: Arc<DataProvider>,
+    token_repository: Arc<TokenRepo>,
+    user_service: Arc<UserService<DataProvider, UserRepo>>,
+    course_service: Arc<CourseService<DataProvider, CourseRepo>>,
+    grade_service: Arc<GradeService<DataProvider, GradeRepo>>,
+    deadline_service: Arc<DeadlineService<DataProvider, DeadlineRepo>>,
 }
 
-impl TokenService {
+impl<DataProvider, TokenRepo, UserRepo, CourseRepo, GradeRepo, DeadlineRepo>
+    TokenService<DataProvider, TokenRepo, UserRepo, CourseRepo, GradeRepo, DeadlineRepo>
+where
+    DataProvider: DataProviderAbstract,
+    TokenRepo: TokenRepositoryAbstract,
+    UserRepo: UserRepositoryAbstract,
+    CourseRepo: CourseRepositoryAbstract,
+    GradeRepo: GradeRepositoryAbstract,
+    DeadlineRepo: DeadlineRepositoryAbstract,
+{
     pub fn new(
-        data_provider: Arc<dyn DataProviderAbstract>,
-        token_repository: Arc<dyn TokenRepositoryAbstract>,
-        user_service: Arc<UserService>,
-        course_service: Arc<CourseService>,
-        grade_service: Arc<GradeService>,
-        deadline_service: Arc<DeadlineService>,
+        data_provider: Arc<DataProvider>,
+        token_repository: Arc<TokenRepo>,
+        user_service: Arc<UserService<DataProvider, UserRepo>>,
+        course_service: Arc<CourseService<DataProvider, CourseRepo>>,
+        grade_service: Arc<GradeService<DataProvider, GradeRepo>>,
+        deadline_service: Arc<DeadlineService<DataProvider, DeadlineRepo>>,
     ) -> Self {
         Self {
             data_provider,
@@ -55,19 +59,16 @@ impl TokenService {
             deadline_service,
         }
     }
-}
 
-#[async_trait]
-impl TokenServiceAbstract for TokenService {
-    async fn delete_one_user(&self, token: &str) -> Result<(), ServiceError> {
+    pub async fn delete_one_user(&self, token: &str) -> Result<(), ServiceError> {
         self.token_repository.delete(token).await?;
         Ok(())
     }
 
-    async fn find_all_tokens<'a>(
+    pub async fn find_all_tokens(
         &self,
         limit: i64,
-        skip: &'a mut u64,
+        skip: &mut u64,
     ) -> Result<Vec<Token>, ServiceError> {
         match self
             .token_repository
@@ -85,7 +86,7 @@ impl TokenServiceAbstract for TokenService {
         }
     }
 
-    async fn fetch_and_update_data(&self, token: &str) -> Result<(), ServiceError> {
+    pub async fn fetch_and_update_data(&self, token: &str) -> Result<(), ServiceError> {
         let user = self.user_service.update_user(token).await?;
         let courses = self.course_service.update_courses(token, &user).await?;
         self.grade_service
@@ -100,7 +101,7 @@ impl TokenServiceAbstract for TokenService {
         Ok(())
     }
 
-    async fn register_user(&self, tokens: &Token) -> Result<(), ServiceError> {
+    pub async fn register_user(&self, tokens: &Token) -> Result<(), ServiceError> {
         self.data_provider.valid_token(&tokens.token).await?;
         self.token_repository.find_token(tokens).await?;
 

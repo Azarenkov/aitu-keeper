@@ -1,7 +1,5 @@
 use std::{fmt::Debug, sync::Arc};
 
-use async_trait::async_trait;
-
 use crate::domain::{
     data_providers::data_provider_abstract::DataProviderAbstract,
     entities::{
@@ -13,60 +11,34 @@ use crate::domain::{
     repositories::data_repository_abstract::GradeRepositoryAbstract,
 };
 
-#[async_trait]
-pub trait GradeServiceAbstract: Send + Sync + Debug {
-    async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, ServiceError>;
-    async fn fetch_grades(
-        &self,
-        token: &str,
-        user: &User,
-        courses: &[Course],
-    ) -> Result<Vec<Grade>, ServiceError>;
-    async fn update_grades(
-        &self,
-        token: &str,
-        user: &User,
-        courses: &[Course],
-    ) -> Result<(), ServiceError>;
-    async fn get_grades_overview(&self, token: &str) -> Result<Vec<GradeOverview>, ServiceError>;
-    async fn fetch_grades_overview(
-        &self,
-        token: &str,
-        courses: &[Course],
-    ) -> Result<GradesOverview, ServiceError>;
-    async fn update_grades_overview(
-        &self,
-        token: &str,
-        courses: &[Course],
-    ) -> Result<(), ServiceError>;
-}
-
 #[derive(Debug)]
-pub struct GradeService {
-    data_provider: Arc<dyn DataProviderAbstract>,
-    pub grade_repository: Arc<dyn GradeRepositoryAbstract>,
+pub struct GradeService<T, U>
+where
+    T: DataProviderAbstract,
+    U: GradeRepositoryAbstract,
+{
+    data_provider: Arc<T>,
+    pub grade_repository: Arc<U>,
 }
 
-impl GradeService {
-    pub fn new(
-        data_provider: Arc<dyn DataProviderAbstract>,
-        grade_repository: Arc<dyn GradeRepositoryAbstract>,
-    ) -> Self {
+impl<T, U> GradeService<T, U>
+where
+    T: DataProviderAbstract,
+    U: GradeRepositoryAbstract,
+{
+    pub fn new(data_provider: Arc<T>, grade_repository: Arc<U>) -> Self {
         Self {
             data_provider,
             grade_repository,
         }
     }
-}
 
-#[async_trait]
-impl GradeServiceAbstract for GradeService {
-    async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, ServiceError> {
+    pub async fn get_grades(&self, token: &str) -> Result<Vec<Grade>, ServiceError> {
         let grades = self.grade_repository.find_grades_by_token(token).await?;
         Ok(grades)
     }
 
-    async fn fetch_grades(
+    pub async fn fetch_grades(
         &self,
         token: &str,
         user: &User,
@@ -88,7 +60,7 @@ impl GradeServiceAbstract for GradeService {
         Ok(grades)
     }
 
-    async fn update_grades(
+    pub async fn update_grades(
         &self,
         token: &str,
         user: &User,
@@ -100,7 +72,10 @@ impl GradeServiceAbstract for GradeService {
         Ok(())
     }
 
-    async fn get_grades_overview(&self, token: &str) -> Result<Vec<GradeOverview>, ServiceError> {
+    pub async fn get_grades_overview(
+        &self,
+        token: &str,
+    ) -> Result<Vec<GradeOverview>, ServiceError> {
         let grades = self
             .grade_repository
             .find_grades_overview_by_token(token)
@@ -108,7 +83,7 @@ impl GradeServiceAbstract for GradeService {
         Ok(grades)
     }
 
-    async fn fetch_grades_overview(
+    pub async fn fetch_grades_overview(
         &self,
         token: &str,
         courses: &[Course],
@@ -127,7 +102,7 @@ impl GradeServiceAbstract for GradeService {
         Ok(grades_overview)
     }
 
-    async fn update_grades_overview(
+    pub async fn update_grades_overview(
         &self,
         token: &str,
         courses: &[Course],

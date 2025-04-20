@@ -14,7 +14,7 @@ use crate::{
 
 #[automock]
 #[async_trait]
-pub trait DataProviderAbstract: Send + Sync {
+pub trait DataProviderAbstract: Send + Sync + Debug {
     async fn get_user(&self, token: &str) -> Result<User, ResponseError>;
     async fn valid_token(&self, token: &str) -> Result<(), ResponseError>;
     async fn get_courses(&self, token: &str, user_id: i64) -> Result<Vec<Course>, ResponseError>;
@@ -30,10 +30,4 @@ pub trait DataProviderAbstract: Send + Sync {
         course_id: i64,
     ) -> Result<Events, ResponseError>;
     async fn get_grades_overview(&self, token: &str) -> Result<GradesOverview, ResponseError>;
-}
-
-impl Debug for dyn DataProviderAbstract {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "DataProviderAbstract{{}}")
-    }
 }

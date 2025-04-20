@@ -8,14 +8,18 @@ use log::{info, warn};
 use crate::{
     config::Config,
     domain::{
-        data_providers::data_provider_abstract::DataProviderAbstract,
+        data_providers::{
+            data_provider_abstract::DataProviderAbstract,
+            notification_provider_abstract::NotificationProviderAbstract,
+        },
+        repositories::data_repository_abstract::{
+            CourseRepositoryAbstract, DeadlineRepositoryAbstract, GradeRepositoryAbstract,
+            TokenRepositoryAbstract, UserRepositoryAbstract,
+        },
         services::{
-            course_service::{CourseService, CourseServiceAbstract},
-            deadline_service::{DeadlineService, DeadlineServiceAbstract},
-            grade_service::{GradeService, GradeServiceAbstract},
-            notification_service::NotificationService,
-            token_service::{TokenService, TokenServiceAbstract},
-            user_service::{UserService, UserServiceAbstract},
+            course_service::CourseService, deadline_service::DeadlineService,
+            grade_service::GradeService, notification_service::NotificationService,
+            token_service::TokenService, user_service::UserService,
         },
     },
     presentation::{
@@ -33,19 +37,58 @@ use super::{
     repositories::data_repository::DataRepository,
 };
 
-pub struct AppDependencies {
-    pub token_service: Arc<dyn TokenServiceAbstract>,
-    pub user_service: Arc<dyn UserServiceAbstract>,
-    pub course_service: Arc<dyn CourseServiceAbstract>,
-    pub grade_service: Arc<dyn GradeServiceAbstract>,
-    pub deadline_service: Arc<dyn DeadlineServiceAbstract>,
-    pub notification_service: NotificationService,
-    pub app_state: web::Data<AppState>,
+pub struct AppDependencies<
+    NotificationProvider,
+    DataProvider,
+    TokenRepo,
+    UserRepo,
+    CourseRepo,
+    GradeRepo,
+    DeadlineRepo,
+> where
+    NotificationProvider: NotificationProviderAbstract,
+    DataProvider: DataProviderAbstract,
+    TokenRepo: TokenRepositoryAbstract,
+    UserRepo: UserRepositoryAbstract,
+    CourseRepo: CourseRepositoryAbstract,
+    GradeRepo: GradeRepositoryAbstract,
+    DeadlineRepo: DeadlineRepositoryAbstract,
+{
+    pub token_service:
+        Arc<TokenService<DataProvider, TokenRepo, UserRepo, CourseRepo, GradeRepo, DeadlineRepo>>,
+    pub user_service: Arc<UserService<DataProvider, UserRepo>>,
+    pub course_service: Arc<CourseService<DataProvider, CourseRepo>>,
+    pub grade_service: Arc<GradeService<DataProvider, GradeRepo>>,
+    pub deadline_service: Arc<DeadlineService<DataProvider, DeadlineRepo>>,
+    pub notification_service: NotificationService<
+        NotificationProvider,
+        DataProvider,
+        TokenRepo,
+        UserRepo,
+        CourseRepo,
+        GradeRepo,
+        DeadlineRepo,
+    >,
+    pub app_state:
+        web::Data<AppState<DataProvider, TokenRepo, UserRepo, CourseRepo, GradeRepo, DeadlineRepo>>,
 }
 
-pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies, Box<dyn Error>> {
+pub async fn initialize_dependencies(
+    config: &Config,
+) -> Result<
+    AppDependencies<
+        FirebaseMessagesClient,
+        MoodleClient,
+        DataRepository,
+        DataRepository,
+        DataRepository,
+        DataRepository,
+        DataRepository,
+    >,
+    Box<dyn std::error::Error>,
+> {
     // Initialize Moodle client
-    let moodle_client: Arc<dyn DataProviderAbstract> = Arc::new(MoodleClient::new(
+    let moodle_client = Arc::new(MoodleClient::new(
         config.base_url.clone(),
         config.format_url.clone(),
     ));
@@ -53,37 +96,35 @@ pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies,
     // Initialize database
     let db = connect(&config.mongo_uri).await?.collection("users");
     let data_repository = Arc::new(DataRepository::new(db));
-    // let user_repository: Arc<dyn UserRepositoryAbstract> = Arc::new(DataRepository::new(db));
 
     // Initialize services
-
     let user_service = Arc::new(UserService::new(
         Arc::clone(&moodle_client),
-        data_repository.clone(),
+        Arc::clone(&data_repository),
     ));
 
     let course_service = Arc::new(CourseService::new(
         Arc::clone(&moodle_client),
-        data_repository.clone(),
+        Arc::clone(&data_repository),
     ));
 
     let grade_service = Arc::new(GradeService::new(
         Arc::clone(&moodle_client),
-        data_repository.clone(),
+        Arc::clone(&data_repository),
     ));
 
     let deadline_service = Arc::new(DeadlineService::new(
         Arc::clone(&moodle_client),
-        data_repository.clone(),
+        Arc::clone(&data_repository),
     ));
 
     let token_service = Arc::new(TokenService::new(
         Arc::clone(&moodle_client),
-        data_repository.clone(),
-        user_service.clone(),
-        course_service.clone(),
-        grade_service.clone(),
-        deadline_service.clone(),
+        Arc::clone(&data_repository),
+        Arc::clone(&user_service),
+        Arc::clone(&course_service),
+        Arc::clone(&grade_service),
+        Arc::clone(&deadline_service),
     ));
 
     let fcm_client = FcmClient::new("service_account_key.json").await?;
@@ -92,19 +133,19 @@ pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies,
     let notification_service = NotificationService::new(
         notification_provider,
         moodle_client,
-        token_service.clone(),
-        user_service.clone(),
-        course_service.clone(),
-        grade_service.clone(),
-        deadline_service.clone(),
+        Arc::clone(&token_service),
+        Arc::clone(&user_service),
+        Arc::clone(&course_service),
+        Arc::clone(&grade_service),
+        Arc::clone(&deadline_service),
     );
 
     let app_state = AppState::new(
-        token_service.clone(),
-        user_service.clone(),
-        course_service.clone(),
-        grade_service.clone(),
-        deadline_service.clone(),
+        Arc::clone(&token_service),
+        Arc::clone(&user_service),
+        Arc::clone(&course_service),
+        Arc::clone(&grade_service),
+        Arc::clone(&deadline_service),
     );
 
     Ok(AppDependencies {
@@ -119,7 +160,15 @@ pub async fn initialize_dependencies(config: &Config) -> Result<AppDependencies,
 }
 
 pub async fn spawn_notification_worker(
-    notification_service: &'static NotificationService,
+    notification_service: &'static NotificationService<
+        FirebaseMessagesClient,
+        MoodleClient,
+        DataRepository,
+        DataRepository,
+        DataRepository,
+        DataRepository,
+        DataRepository,
+    >,
     batch_size: i64,
 ) {
     tokio::spawn(async move {
@@ -135,7 +184,9 @@ pub async fn spawn_notification_worker(
     });
 }
 
-pub async fn spawn_deadline_cleaner_worker(deadline_service: Arc<dyn DeadlineServiceAbstract>) {
+pub async fn spawn_deadline_cleaner_worker(
+    deadline_service: Arc<DeadlineService<MoodleClient, DataRepository>>,
+) {
     tokio::spawn(async move {
         loop {
             info!("Deadline cleaner worker started");
@@ -150,7 +201,19 @@ pub async fn spawn_deadline_cleaner_worker(deadline_service: Arc<dyn DeadlineSer
     });
 }
 
-pub async fn server(app_state: web::Data<AppState>, port: &str) -> Result<(), Box<dyn Error>> {
+pub async fn server(
+    app_state: web::Data<
+        AppState<
+            MoodleClient,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+        >,
+    >,
+    port: &str,
+) -> Result<(), Box<dyn Error>> {
     let address = format!("0.0.0.0:{}", port);
 
     HttpServer::new(move || {

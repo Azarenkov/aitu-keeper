@@ -14,6 +14,7 @@ use crate::domain::{
 
 use super::errors::ResponseError;
 
+#[derive(Debug)]
 pub struct MoodleClient {
     client: Client,
     base_url: String,

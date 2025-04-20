@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use fcm_rs::client::FcmClient;
 use fcm_rs::models::{Message, Notification};
 use std::error::Error;
+use std::fmt::Debug;
 
 use crate::domain::data_providers::notification_provider_abstract::NotificationProviderAbstract;
 
@@ -12,6 +13,12 @@ pub struct FirebaseMessagesClient {
 impl FirebaseMessagesClient {
     pub fn new(client: FcmClient) -> Self {
         Self { client }
+    }
+}
+
+impl Debug for FirebaseMessagesClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Err FirebaseMessagesClient")
     }
 }
 

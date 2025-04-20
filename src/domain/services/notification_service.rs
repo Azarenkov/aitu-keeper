@@ -16,34 +16,82 @@ use crate::domain::{
         token::Token,
         user::User,
     },
+    repositories::data_repository_abstract::{
+        CourseRepositoryAbstract, DeadlineRepositoryAbstract, GradeRepositoryAbstract,
+        TokenRepositoryAbstract, UserRepositoryAbstract,
+    },
 };
 
 use super::{
-    course_service::CourseServiceAbstract, deadline_service::DeadlineServiceAbstract,
-    grade_service::GradeServiceAbstract, token_service::TokenServiceAbstract,
-    user_service::UserServiceAbstract,
+    course_service::CourseService, deadline_service::DeadlineService, grade_service::GradeService,
+    token_service::TokenService, user_service::UserService,
 };
 
 #[derive(Debug)]
-pub struct NotificationService {
-    notification_provider: Arc<dyn NotificationProviderAbstract>,
-    data_provider: Arc<dyn DataProviderAbstract>,
-    token_service: Arc<dyn TokenServiceAbstract>,
-    user_service: Arc<dyn UserServiceAbstract>,
-    course_service: Arc<dyn CourseServiceAbstract>,
-    grade_service: Arc<dyn GradeServiceAbstract>,
-    deadline_service: Arc<dyn DeadlineServiceAbstract>,
+pub struct NotificationService<
+    NotificationProvider,
+    DataProvider,
+    TokenRepo,
+    UserRepo,
+    CourseRepo,
+    GradeRepo,
+    DeadlineRepo,
+> where
+    NotificationProvider: NotificationProviderAbstract,
+    DataProvider: DataProviderAbstract,
+    TokenRepo: TokenRepositoryAbstract,
+    UserRepo: UserRepositoryAbstract,
+    CourseRepo: CourseRepositoryAbstract,
+    GradeRepo: GradeRepositoryAbstract,
+    DeadlineRepo: DeadlineRepositoryAbstract,
+{
+    notification_provider: Arc<NotificationProvider>,
+    data_provider: Arc<DataProvider>,
+    token_service:
+        Arc<TokenService<DataProvider, TokenRepo, UserRepo, CourseRepo, GradeRepo, DeadlineRepo>>,
+    user_service: Arc<UserService<DataProvider, UserRepo>>,
+    course_service: Arc<CourseService<DataProvider, CourseRepo>>,
+    grade_service: Arc<GradeService<DataProvider, GradeRepo>>,
+    deadline_service: Arc<DeadlineService<DataProvider, DeadlineRepo>>,
 }
 
-impl NotificationService {
+impl<
+        NotificationProvider,
+        DataProvider,
+        TokenRepo,
+        UserRepo,
+        CourseRepo,
+        GradeRepo,
+        DeadlineRepo,
+    >
+    NotificationService<
+        NotificationProvider,
+        DataProvider,
+        TokenRepo,
+        UserRepo,
+        CourseRepo,
+        GradeRepo,
+        DeadlineRepo,
+    >
+where
+    NotificationProvider: NotificationProviderAbstract,
+    DataProvider: DataProviderAbstract,
+    TokenRepo: TokenRepositoryAbstract,
+    UserRepo: UserRepositoryAbstract,
+    CourseRepo: CourseRepositoryAbstract,
+    GradeRepo: GradeRepositoryAbstract,
+    DeadlineRepo: DeadlineRepositoryAbstract,
+{
     pub fn new(
-        notification_provider: Arc<dyn NotificationProviderAbstract>,
-        data_provider: Arc<dyn DataProviderAbstract>,
-        token_service: Arc<dyn TokenServiceAbstract>,
-        user_service: Arc<dyn UserServiceAbstract>,
-        course_service: Arc<dyn CourseServiceAbstract>,
-        grade_service: Arc<dyn GradeServiceAbstract>,
-        deadline_service: Arc<dyn DeadlineServiceAbstract>,
+        notification_provider: Arc<NotificationProvider>,
+        data_provider: Arc<DataProvider>,
+        token_service: Arc<
+            TokenService<DataProvider, TokenRepo, UserRepo, CourseRepo, GradeRepo, DeadlineRepo>,
+        >,
+        user_service: Arc<UserService<DataProvider, UserRepo>>,
+        course_service: Arc<CourseService<DataProvider, CourseRepo>>,
+        grade_service: Arc<GradeService<DataProvider, GradeRepo>>,
+        deadline_service: Arc<DeadlineService<DataProvider, DeadlineRepo>>,
     ) -> Self {
         Self {
             notification_provider,
@@ -57,7 +105,33 @@ impl NotificationService {
     }
 }
 
-impl NotificationService {
+impl<
+        NotificationProvider,
+        DataProvider,
+        TokenRepo,
+        UserRepo,
+        CourseRepo,
+        GradeRepo,
+        DeadlineRepo,
+    >
+    NotificationService<
+        NotificationProvider,
+        DataProvider,
+        TokenRepo,
+        UserRepo,
+        CourseRepo,
+        GradeRepo,
+        DeadlineRepo,
+    >
+where
+    NotificationProvider: NotificationProviderAbstract,
+    DataProvider: DataProviderAbstract,
+    TokenRepo: TokenRepositoryAbstract,
+    UserRepo: UserRepositoryAbstract,
+    CourseRepo: CourseRepositoryAbstract,
+    GradeRepo: GradeRepositoryAbstract,
+    DeadlineRepo: DeadlineRepositoryAbstract,
+{
     pub async fn get_batches(
         &'static self,
         limit: i64,

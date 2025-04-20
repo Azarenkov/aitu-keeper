@@ -4,8 +4,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use async_trait::async_trait;
-
 use crate::domain::{
     data_providers::data_provider_abstract::DataProviderAbstract,
     entities::{
@@ -16,39 +14,29 @@ use crate::domain::{
     repositories::data_repository_abstract::DeadlineRepositoryAbstract,
 };
 
-#[async_trait]
-pub trait DeadlineServiceAbstract: Send + Sync + Debug {
-    async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, ServiceError>;
-    async fn fetch_deadlines(
-        &self,
-        token: &str,
-        courses: &[Course],
-    ) -> Result<Vec<Deadline>, ServiceError>;
-    async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), ServiceError>;
-    async fn remove_expired_deadlines(&self) -> Result<(), ServiceError>;
-}
-
 #[derive(Debug)]
-pub struct DeadlineService {
-    data_provider: Arc<dyn DataProviderAbstract>,
-    pub deadline_repository: Arc<dyn DeadlineRepositoryAbstract>,
+pub struct DeadlineService<T, U>
+where
+    T: DataProviderAbstract,
+    U: DeadlineRepositoryAbstract,
+{
+    data_provider: Arc<T>,
+    pub deadline_repository: Arc<U>,
 }
 
-impl DeadlineService {
-    pub fn new(
-        data_provider: Arc<dyn DataProviderAbstract>,
-        deadline_repository: Arc<dyn DeadlineRepositoryAbstract>,
-    ) -> Self {
+impl<T, U> DeadlineService<T, U>
+where
+    T: DataProviderAbstract,
+    U: DeadlineRepositoryAbstract,
+{
+    pub fn new(data_provider: Arc<T>, deadline_repository: Arc<U>) -> Self {
         Self {
             data_provider,
             deadline_repository,
         }
     }
-}
 
-#[async_trait]
-impl DeadlineServiceAbstract for DeadlineService {
-    async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, ServiceError> {
+    pub async fn get_deadlines(&self, token: &str) -> Result<Vec<Deadline>, ServiceError> {
         let deadlines = self
             .deadline_repository
             .find_deadlines_by_token(token)
@@ -56,7 +44,7 @@ impl DeadlineServiceAbstract for DeadlineService {
         Ok(deadlines)
     }
 
-    async fn fetch_deadlines(
+    pub async fn fetch_deadlines(
         &self,
         token: &str,
         courses: &[Course],
@@ -78,7 +66,11 @@ impl DeadlineServiceAbstract for DeadlineService {
         Ok(sorted_deadlines)
     }
 
-    async fn update_deadlines(&self, token: &str, courses: &[Course]) -> Result<(), ServiceError> {
+    pub async fn update_deadlines(
+        &self,
+        token: &str,
+        courses: &[Course],
+    ) -> Result<(), ServiceError> {
         let deadlines = self.fetch_deadlines(token, courses).await?;
         self.deadline_repository
             .save_deadlines(token, &deadlines)
@@ -86,7 +78,7 @@ impl DeadlineServiceAbstract for DeadlineService {
         Ok(())
     }
 
-    async fn remove_expired_deadlines(&self) -> Result<(), ServiceError> {
+    pub async fn remove_expired_deadlines(&self) -> Result<(), ServiceError> {
         let unix_date = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() + 21600;
         self.deadline_repository
             .delete_expired_deadlines(unix_date)

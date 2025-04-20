@@ -1,6 +1,12 @@
 use actix_web::{get, guard, web, HttpResponse, Responder};
 
-use crate::{domain::entities::errors::ServiceError, presentation::shared::app_state::AppState};
+use crate::{
+    domain::entities::errors::ServiceError,
+    infrastructure::{
+        data_providers::moodle_client::MoodleClient, repositories::data_repository::DataRepository,
+    },
+    presentation::shared::app_state::AppState,
+};
 
 pub fn grade_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -14,7 +20,16 @@ pub fn grade_routes(cfg: &mut web::ServiceConfig) {
 #[get("/get_grades/{token}")]
 async fn get_grades(
     token: web::Path<String>,
-    app_state: web::Data<AppState>,
+    app_state: web::Data<
+        AppState<
+            MoodleClient,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+        >,
+    >,
 ) -> Result<impl Responder, ServiceError> {
     let grades = app_state
         .grade_service
@@ -26,7 +41,16 @@ async fn get_grades(
 #[get("/get_grades_overview/{token}")]
 async fn get_grades_overview(
     token: web::Path<String>,
-    app_state: web::Data<AppState>,
+    app_state: web::Data<
+        AppState<
+            MoodleClient,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+            DataRepository,
+        >,
+    >,
 ) -> Result<impl Responder, ServiceError> {
     let grades = app_state
         .grade_service
